@@ -13,7 +13,7 @@ from inspect_ai.solver import Generate, Solver, TaskState, generate, solver, use
 from inspect_ai.tool import Tool, tool
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from arena_evals import corpus
+from arena_evals import corpus, tracing
 from arena_evals.config import ROOT
 
 PROMPTS_DIR = ROOT / "prompts"
@@ -198,7 +198,8 @@ def load_prompt(variant: str, prompts_dir: str | Path = PROMPTS_DIR) -> str:
 
 
 @solver
-def arena_agent(variant: str, prompts_dir: str = str(PROMPTS_DIR), cache: bool = True) -> Solver:
+def arena_agent(variant: str, prompts_dir: str = str(PROMPTS_DIR), cache: bool = True,
+                span_attrs: dict | None = None) -> Solver:
     # ponytail: inserts ChatMessageSystem directly; inspect's system_message() str-formats and mangles the JSON braces
     prompt = load_prompt(variant, prompts_dir)
     tools = use_tools(search_docs(), get_doc(), calculate())
@@ -206,8 +207,12 @@ def arena_agent(variant: str, prompts_dir: str = str(PROMPTS_DIR), cache: bool =
 
     async def solve(state: TaskState, generate_fn: Generate) -> TaskState:
         METER.check()
-        state.messages.insert(0, ChatMessageSystem(content=prompt))
-        state = await tools(state, generate_fn)
-        return await loop(state, generate_fn)
+        with tracing.sample_span("arena.sample", **(span_attrs or {}), task_id=str(state.sample_id),
+                                 repeat=state.epoch - 1) as trace_id:
+            state.metadata["trace_id"] = trace_id
+            state.messages.insert(0, ChatMessageSystem(content=prompt))
+            state = await tools(state, generate_fn)
+            state = await loop(state, generate_fn)
+        return state
 
     return solve
