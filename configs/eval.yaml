@@ -1,0 +1,16 @@
+# Run settings (FR5, FR7). Changing this file triggers the gate.
+k: 3                      # repeats per task (epochs)
+seed: 20260930            # bootstrap + sampling seed
+n_resamples: 10000        # bootstrap resamples (seeded)
+max_connections: 10       # parallel model calls (Inspect backs off on rate limits)
+cache: true               # Inspect response cache, CachePolicy(expiry=None)
+limits:
+  message_limit: 40
+  token_limit: 80000
+  time_limit: 300         # seconds per sample
+  max_tool_calls: 12
+cost:
+  max_usd_per_gate: 20.0  # starting value (spec I7); reset after the Task 17 measurement
+  preflight_factor: 1.2
+sim:
+  sd: 0.45                # paired per-task SD; replaced by the Task 17 measurement

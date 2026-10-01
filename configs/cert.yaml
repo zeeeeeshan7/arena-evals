@@ -1,0 +1,5 @@
+kappa_ci_lower_min: 0.4
+kappa_point_min: 0.6
+verbosity_slope_max_pts: 2.0
+n_labels: 100
+min_per_cell: 5

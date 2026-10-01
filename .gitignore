@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+logs/
+runs/
+.arena-out/
+.arena-cache/
+.arena-base/
+.inspect-cache/
+.phoenix/
+calibration/free_text_tasks.jsonl

@@ -1,0 +1,7 @@
+variant: baseline
+split: gate
+eps_pts: 2.0
+upper_q: 0.975
+judge_error_max_frac: 0.02
+bh_q: 0.05
+status_context: arena-eval/gate

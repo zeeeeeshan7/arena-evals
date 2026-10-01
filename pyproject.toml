@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arena-evals"
+version = "0.1.0"
+description = "Eval harness and CI quality gate for the arena stand-in agents"
+requires-python = ">=3.11"
+dependencies = [
+    "inspect-ai==0.3.272",
+    "anthropic>=1.9",
+    "numpy>=2.0",
+    "scipy>=1.13",
+    "pydantic>=2.7",
+    "pyyaml>=6.0",
+    "arize-phoenix>=20.16",
+    "arize-phoenix-otel>=0.17",
+    "openinference-instrumentation-anthropic>=2.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+# pip installs the dependencies above; the code itself is imported from the repo root (pytest `pythonpath`,
+# `python -m arena_evals` from the root). That way the gate's base-commit worktree imports ITS code, not HEAD's.
+[tool.setuptools.packages.find]
+include = ["arena_evals*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = ["slow: Monte Carlo simulations (minutes); run with -m slow"]
+addopts = "-m 'not slow'"

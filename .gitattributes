@@ -1,0 +1,2 @@
+# Hashes (dataset, prompt, rubric, scorer) are over file bytes: keep LF everywhere so Windows and CI agree.
+* text=auto eol=lf

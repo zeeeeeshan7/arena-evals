@@ -1,0 +1,19 @@
+# Pinned models (FR7). Agent and judge are configured separately (NFR isolation).
+agent:
+  model: anthropic/claude-haiku-4-5-20251001
+  temperature: 0.7
+  seed: 1234
+judge:
+  model: anthropic/claude-sonnet-4-5-20250929
+  temperature: 0.0
+  seed: 1234
+drafter:
+  model: anthropic/claude-sonnet-4-5-20250929
+perturber:
+  model: anthropic/claude-haiku-4-5-20251001
+# USD per million tokens. "default" is charged for any unlisted model so the cap never under-counts.
+prices:
+  anthropic/claude-haiku-4-5-20251001: {input: 1.0, output: 5.0}
+  anthropic/claude-sonnet-4-5-20250929: {input: 3.0, output: 15.0}
+  mockllm/model: {input: 0.0, output: 0.0}
+  default: {input: 15.0, output: 75.0}
