@@ -9,9 +9,15 @@ Requirements: `PRD.md`. Design: `docs/superpowers/specs/2026-09-30-arena-eval-ha
 ```bash
 python -m venv .venv && source .venv/bin/activate   # Windows Git Bash: source .venv/Scripts/activate
 pip install -e ".[dev]"
-export ANTHROPIC_API_KEY=...          # only for commands that call models
+export ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic   # DeepSeek's Anthropic-compatible API
+export ANTHROPIC_API_KEY=...          # your DeepSeek key; only for commands that call models
 pytest -q                             # unit + mock end-to-end tests, no API calls
 ```
+
+Models are pinned in `configs/models.yaml`: agent `deepseek-flash`, judge `deepseek-v4-pro`, served through the `anthropic/` provider.
+Use explicit DeepSeek names: that endpoint maps any Claude model name to `deepseek-flash`, which would make the manifest lie.
+Agent and judge share a vendor, so the self-preference warning fires on every run; judge certification (agreement with your hand
+labels, verbosity tests) is the check that matters. Prices in `models.yaml` are DeepSeek peak-hour rates; the cost cap is `$4`.
 
 ## Commands
 

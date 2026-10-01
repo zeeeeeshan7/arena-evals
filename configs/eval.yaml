@@ -10,7 +10,7 @@ limits:
   time_limit: 300         # seconds per sample
   max_tool_calls: 12
 cost:
-  max_usd_per_gate: 20.0  # starting value (spec I7); reset after the Task 17 measurement
+  max_usd_per_gate: 4.0   # sized to a ~$5 DeepSeek balance (spec I7); reset after the Task 17 measurement
   preflight_factor: 1.2
 sim:
   sd: 0.45                # paired per-task SD; replaced by the Task 17 measurement

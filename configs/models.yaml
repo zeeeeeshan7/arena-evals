@@ -1,18 +1,21 @@
-# Pinned models (FR7). Agent and judge are configured separately (NFR isolation).
+# Pinned models (FR7). Served by DeepSeek's Anthropic-compatible API: set ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
+# and ANTHROPIC_API_KEY to your DeepSeek key. Claude names would silently map to deepseek-flash there, so names are explicit. Agent and judge are configured separately (NFR isolation).
 agent:
-  model: anthropic/claude-haiku-4-5-20251001
+  model: anthropic/deepseek-flash
   temperature: 0.7
   seed: 1234
 judge:
-  model: anthropic/claude-sonnet-4-5-20250929
+  model: anthropic/deepseek-v4-pro
   temperature: 0.0
   seed: 1234
 drafter:
-  model: anthropic/claude-sonnet-4-5-20250929
+  model: anthropic/deepseek-v4-pro
 perturber:
-  model: anthropic/claude-haiku-4-5-20251001
+  model: anthropic/deepseek-flash
 # USD per million tokens. "default" is charged for any unlisted model so the cap never under-counts.
 prices:
+  anthropic/deepseek-flash: {input: 0.30, output: 1.20}        # DeepSeek peak-hour prices (off-peak is half)
+  anthropic/deepseek-v4-pro: {input: 1.32, output: 3.96}
   anthropic/claude-haiku-4-5-20251001: {input: 1.0, output: 5.0}
   anthropic/claude-sonnet-4-5-20250929: {input: 3.0, output: 15.0}
   mockllm/model: {input: 0.0, output: 0.0}

@@ -159,7 +159,7 @@ def _git_repo(tmp_path: Path, with_harness: bool = True) -> tuple[Path, str]:
     for d in ("configs", "prompts", "corpus") + (("arena_evals",) if with_harness else ()):
         shutil.copytree(ROOT / d, tmp_path / d, ignore=shutil.ignore_patterns("__pycache__"))
     models = tmp_path / "configs" / "models.yaml"
-    models.write_text(models.read_text().replace("anthropic/claude-haiku-4-5-20251001\n  temperature",
+    models.write_text(models.read_text().replace("anthropic/deepseek-flash\n  temperature",
                                                  "mockllm/model\n  temperature", 1))
     datasets.write_jsonl(tmp_path / "datasets" / "gate.jsonl", TASKS[:2])
     git = lambda *a: subprocess.run(["git", *a], cwd=tmp_path, check=True, capture_output=True, text=True).stdout
