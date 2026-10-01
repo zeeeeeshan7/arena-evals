@@ -2,12 +2,19 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
-from inspect_ai.model import ChatMessageTool
+from inspect_ai.model import (CachePolicy, ChatMessageAssistant, ChatMessageSystem, ChatMessageTool,
+                              ChatMessageUser, GenerateConfig, get_model)
 from inspect_ai.scorer import Score, Target, scorer
 from inspect_ai.solver import TaskState
+from pydantic import BaseModel, ConfigDict, ValidationError
 
-from arena_evals.agents import _index, parse_final
+from arena_evals import agents, tracing
+from arena_evals.agents import _index, parse_final, usage_cost
+from arena_evals.config import ROOT
+
+RUBRIC_DIR = ROOT / "prompts" / "judge"
 
 _NUM = re.compile(r"-?\d[\d,]*(?:\.\d+)?")
 
@@ -107,5 +114,72 @@ def abstention():
     async def score(state: TaskState, target: Target) -> Score:
         f = parse_final(state.output.completion)
         return Score(value=bool(f and f.abstain))
+
+    return score
+
+
+# ---------------------------------------------------------------- LLM judge (M4)
+class JudgeVerdict(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    correct: bool
+    faithful: bool
+    reason: str
+
+
+def judge_messages(rubric_dir: Path, task_input: str, reference: str | None, answer: str,
+                   cited_docs: dict[str, str]) -> list:
+    system = (rubric_dir / "system.md").read_text(encoding="utf-8")
+    rubric = (rubric_dir / "rubric.md").read_text(encoding="utf-8")
+    docs = "\n\n".join(f"<doc id=\"{i}\">\n{t}\n</doc>" for i, t in cited_docs.items()) or "(no valid cited documents)"
+    user = (f"{rubric}\n\n## Question\n{task_input}\n\n## Reference answer\n{reference}\n\n"
+            f"## Assistant answer\n{answer}\n\n## Documents the assistant cited\n{docs}\n")
+    return [ChatMessageSystem(content=system), ChatMessageUser(content=user)]
+
+
+def parse_verdict(text: str) -> JudgeVerdict:
+    """Extract the outermost {...} and validate it. Raises ValueError (ValidationError is a ValueError)."""
+    start, end = text.find("{"), text.rfind("}")
+    if start < 0 or end < start:
+        raise ValueError("no JSON object in judge output")
+    return JudgeVerdict.model_validate_json(text[start:end + 1])
+
+
+async def judge_answer(model, rubric_dir: Path, task_input: str, reference: str | None, answer: str,
+                       cited_docs: dict[str, str], cache: bool = True, prices: dict | None = None
+                       ) -> tuple[JudgeVerdict | None, float]:
+    """Two attempts: on invalid output, retry once with the validation error appended. (None, cost) = judge error."""
+    messages = judge_messages(rubric_dir, task_input, reference, answer, cited_docs)
+    cost = 0.0
+    for _ in range(2):
+        agents.METER.check()
+        out = await model.generate(messages, cache=CachePolicy(expiry=None) if cache else False)
+        if out.usage:
+            cost += usage_cost(out.usage, str(model), prices or agents.METER.prices)
+        try:
+            return parse_verdict(out.completion), cost
+        except ValueError as e:
+            messages = messages + [ChatMessageAssistant(content=out.completion),
+                                   ChatMessageUser(content=f"Your reply failed validation: {e}\n"
+                                                           "Reply with only the JSON object.")]
+    return None, cost
+
+
+@scorer(metrics=[])
+def judge(model, rubric_dir: str = str(RUBRIC_DIR), temperature: float = 0.0, seed: int = 0, cache: bool = True):
+    """Pointwise judge, only for free_text answers that did not abstain. Value keys: correct, faithful, error, cost_usd."""
+
+    async def score(state: TaskState, target: Target) -> Score:
+        task, f = state.metadata, parse_final(state.output.completion)
+        if task["answer_kind"] != "free_text" or f is None or f.abstain:
+            return Score(value={"judged": False, "correct": None, "faithful": None, "error": False, "cost_usd": 0.0})
+        m = model if not isinstance(model, str) else get_model(
+            model, config=GenerateConfig(temperature=temperature, seed=seed))
+        docs = {c: _index().docs[c].text for c in f.citations if c in _index().docs}
+        with tracing.sample_span("arena.judge", task_id=str(state.sample_id), repeat=state.epoch - 1, model=str(m)):
+            verdict, cost = await judge_answer(m, Path(rubric_dir), task["input"], task["reference"], f.answer, docs, cache)
+        if verdict is None:
+            return Score(value={"judged": True, "correct": None, "faithful": None, "error": True, "cost_usd": cost})
+        return Score(value={"judged": True, "correct": verdict.correct, "faithful": verdict.faithful, "error": False,
+                            "cost_usd": cost}, explanation=verdict.reason)
 
     return score
