@@ -30,6 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
+      # DeepSeek serves the Anthropic API: the secret holds a DeepSeek key, so the endpoint must be set too.
+      ANTHROPIC_BASE_URL: https://api.deepseek.com/anthropic
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       PR: ${{ github.event.pull_request.number || inputs.pr }}

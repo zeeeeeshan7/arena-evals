@@ -10,3 +10,4 @@ runs/
 .inspect-cache/
 .phoenix/
 calibration/free_text_tasks.jsonl
+*.egg-info/

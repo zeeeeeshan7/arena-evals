@@ -36,3 +36,10 @@ def test_gate_uploads_artifact_and_saves_baseline_cache_even_on_block():
     upload = next(s for s in steps if str(s.get("uses", "")).startswith("actions/upload-artifact"))
     assert upload["if"] == "always()" and upload["with"]["path"] == ".arena-out"
     assert upload["with"]["name"].startswith("arena-eval-")
+
+
+def test_gate_job_points_the_anthropic_client_at_the_configured_endpoint():
+    """A DeepSeek key sent to api.anthropic.com would 401: the base URL must be set next to the key."""
+    env = load("gate.yml")["jobs"]["gate"]["env"]
+    assert env["ANTHROPIC_BASE_URL"] == "https://api.deepseek.com/anthropic"
+    assert env["ANTHROPIC_API_KEY"] == "${{ secrets.ANTHROPIC_API_KEY }}"
