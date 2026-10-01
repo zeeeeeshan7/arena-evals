@@ -1,13 +1,15 @@
 """Judge calibration: stratified export for blind hand-labeling, a terminal labeling CLI, agreement report."""
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import random
+import re
 from pathlib import Path
 from typing import Callable
 
-from arena_evals import corpus, datasets, run
+from arena_evals import bias, corpus, datasets, run
 from arena_evals.config import Config
 from arena_evals.stats.agreement import agreement_report, confusion
 
@@ -66,6 +68,107 @@ def export(cfg: Config, *, model=None, judge_model=None, epochs: int = 1) -> Pat
     datasets.write_jsonl(cfg.root / "calibration" / "key.jsonl",
                          [{"example_id": e["example_id"], "judge_pass": e["judge_pass"], **e["judge"]} for e in chosen])
     return datasets.write_jsonl(cfg.root / "calibration" / "to_label.jsonl", blind)
+
+
+# ---------------------------------------------------------------- negatives (known-bad answers by construction)
+KINDS = ("wrong_number", "dropped_fact", "unsupported_claim", "wrong_citation")
+_NUM = re.compile(r"\d[\d,]*(?:\.\d+)?")
+
+
+def _fact_sentences(doc: corpus.Doc) -> list[str]:
+    skip = ("#", "Halcyon Robotics", "This document", "Related documents")
+    return [l.strip() for l in doc.body.splitlines() if l.strip() and not l.strip().startswith(skip)]
+
+
+def corrupt(kind: str, e: dict, docs: dict[str, corpus.Doc], rng: random.Random) -> dict | None:
+    """A known-bad copy of a real exported example: it fails the judge rubric by construction. None if the example
+    has nothing to corrupt that way. wrong_number changes a required number; dropped_fact drops the second required
+    fact; unsupported_claim adds a sentence no cited document supports; wrong_citation cites a document that does not
+    hold the facts."""
+    ans, cites = e["answer"], list(e["citations"])
+    if kind == "wrong_number":
+        ref_nums = {n.replace(",", "") for n in _NUM.findall(e["reference"] or "")}
+        hit = next((m for m in _NUM.finditer(ans) if m.group().replace(",", "") in ref_nums), None)
+        if hit is None:
+            return None
+        ans = ans[:hit.start()] + str(int(float(hit.group().replace(",", ""))) + 7) + ans[hit.end():]
+    elif kind == "dropped_fact":
+        if ";" not in (e["reference"] or "") or not re.search(r";|, and ", ans):
+            return None
+        ans = re.split(r";|, and ", ans, maxsplit=1)[0].strip()
+    elif kind == "unsupported_claim":
+        cited = " ".join(docs[c].text for c in cites if c in docs)
+        extra = [s for i, d in docs.items() if i not in cites for s in _fact_sentences(d) if s not in cited]
+        if not extra:
+            return None
+        ans = f"{ans} {rng.choice(extra)}"
+    elif kind == "wrong_citation":
+        sig = set(bias.facts_signature(ans))
+        ok = [i for i, d in docs.items() if i not in cites and not sig & set(bias.facts_signature(d.body))]
+        if not ok:
+            return None
+        cites = [rng.choice(sorted(ok))]
+    else:
+        raise ValueError(f"unknown corruption kind {kind!r}")
+    return e | {"example_id": f"{e['example_id']}~{kind}", "answer": ans, "citations": cites, "synthetic": kind}
+
+
+def augment(cfg: Config, *, judge_model=None, per_kind: int = 10, seed: int | None = None) -> Path:
+    """Append known-bad examples to to_label.jsonl, judge them into key.jsonl, and record their labels
+    (labeler "construction", label fail) in labels.jsonl. Idempotent: per_kind is the total per kind."""
+    from inspect_ai.model import GenerateConfig, get_model
+
+    from arena_evals import agents
+    from arena_evals.config import model_args
+    from arena_evals.scorers import judge_answer
+
+    cal = cfg.root / "calibration"
+    to_label_path = cal / "to_label.jsonl"
+    rows = read_jsonl(to_label_path)
+    have = {r["example_id"] for r in rows}
+    docs = corpus.load(cfg.root / "corpus" / "docs")
+    rng = random.Random(cfg.eval["seed"] if seed is None else seed)
+    real = [r for r in rows if "synthetic" not in r]
+    new: list[dict] = []
+    for kind in KINDS:
+        order = real[:]
+        rng.shuffle(order)
+        made = sum(r.get("synthetic") == kind for r in rows)    # per_kind is the total wanted, so a re-run adds none
+        for e in order:
+            if made >= per_kind:
+                break
+            n = corrupt(kind, e, docs, rng)
+            if n and n["example_id"] not in have:
+                new.append(n)
+                have.add(n["example_id"])
+                made += 1
+    if not new:
+        return to_label_path
+    jc = cfg.models["judge"]
+    jm = judge_model or get_model(jc["model"], config=GenerateConfig(temperature=jc["temperature"], seed=jc["seed"]),
+                                  **model_args(jc["model"], jc["temperature"]))
+
+    async def judge_all():
+        sem = asyncio.Semaphore(cfg.eval["max_connections"])
+
+        async def one(e):
+            async with sem:
+                v, _ = await judge_answer(jm, cfg.rubric_dir, e["input"], e["reference"], e["answer"],
+                                          {c: docs[c].text for c in e["citations"] if c in docs}, cfg.eval["cache"])
+            return e, v
+        return await asyncio.gather(*(one(e) for e in new))
+
+    agents.METER.check()
+    judged = asyncio.run(judge_all())
+    key = read_jsonl(cal / "key.jsonl") + [
+        {"example_id": e["example_id"], "judge_pass": None if v is None else bool(v.correct and v.faithful),
+         **({} if v is None else {"correct": v.correct, "faithful": v.faithful, "reason": v.reason})}
+        for e, v in judged]
+    datasets.write_jsonl(cal / "key.jsonl", key)
+    datasets.write_jsonl(cal / "labels.jsonl", read_jsonl(cal / "labels.jsonl") + [
+        {"example_id": e["example_id"], "task_id": e["task_id"], "variant": e["variant"], "human_label": "fail",
+         "labeler": "construction", "note": e["synthetic"]} for e in new])
+    return datasets.write_jsonl(to_label_path, rows + new)
 
 
 def label_cli(path: Path, labels_path: Path | None = None, labeler: str | None = None,

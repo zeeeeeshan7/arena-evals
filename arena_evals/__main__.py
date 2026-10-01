@@ -75,6 +75,9 @@ def main(argv: list[str] | None = None) -> int:
     cal = sub.add_parser("calibrate").add_subparsers(dest="action", required=True)
     ce = cal.add_parser("export")
     ce.add_argument("--max-usd", type=float)
+    ca = cal.add_parser("augment")
+    ca.add_argument("--max-usd", type=float)
+    ca.add_argument("--per-kind", type=int, default=10)
     cl = cal.add_parser("label")
     cl.add_argument("--labeler")
     cert = sub.add_parser("certify")
@@ -183,6 +186,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.action == "export":
             _meter(cfg, args.max_usd)
             print(f"wrote {calibration.export(cfg)}")
+            return 0
+        if args.action == "augment":
+            _meter(cfg, args.max_usd)
+            print(f"wrote {calibration.augment(cfg, per_kind=args.per_kind)}")
             return 0
         print(f"labels in {calibration.label_cli(cfg.root / 'calibration' / 'to_label.jsonl', labeler=args.labeler)}")
         return 0
