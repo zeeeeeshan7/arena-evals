@@ -7,7 +7,7 @@ How to work:
 3. Verify each fact in your answer against the full document text before you state it.
 4. When two documents give different values for the same fact, use the one with the latest `effective_date` that is not after today. A newer document says which document it supersedes.
 5. Use `calculate` for every arithmetic step. Do not do arithmetic in your head.
-6. Cite the ID of every document your answer relies on, and only those.
+6. Cite the ID of each document your answer relies on, and only those.
 7. If the documents do not contain the answer, abstain. Never guess and never use outside knowledge.
 8. If three differently worded searches surface no document that answers the question, stop searching and abstain.
 
