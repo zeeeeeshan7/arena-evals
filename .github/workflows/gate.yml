@@ -1,0 +1,91 @@
+name: arena-eval-gate
+
+on:
+  pull_request:
+    paths:
+      - "prompts/**"
+      - "agents/**"
+      - "arena_evals/agents.py"
+      - "configs/**"
+      - "datasets/**"
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "PR number to re-evaluate"
+        required: true
+      rerun_reason:
+        description: "Why this blocked gate deserves a re-run (logged in the PR comment)"
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  statuses: write
+
+concurrency:
+  group: arena-eval-${{ github.event.pull_request.number || inputs.pr }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    # Fork PRs get no secrets: skip here, fork-notice.yml explains on the PR.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PR: ${{ github.event.pull_request.number || inputs.pr }}
+      RERUN_REASON: ${{ inputs.rerun_reason }}
+      ARENA_TRACE: "1"
+      PHOENIX_WORKING_DIR: ${{ github.workspace }}/.arena-out/phoenix
+      INSPECT_CACHE_DIR: ${{ github.workspace }}/.inspect-cache
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - name: Start Phoenix (trace DB lands in PHOENIX_WORKING_DIR)
+        run: |
+          mkdir -p "$PHOENIX_WORKING_DIR"
+          nohup phoenix serve > .arena-out/phoenix.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:6006 >/dev/null && exit 0; sleep 1; done
+          echo "phoenix did not start"; cat .arena-out/phoenix.log; exit 1
+      - name: Baseline cache key
+        id: key
+        run: echo "key=$(python -m arena_evals cache-key --pr "$PR" | tail -n 1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@v4
+        id: baseline
+        with:
+          path: .arena-cache/baseline
+          key: arena-baseline-${{ steps.key.outputs.key }}
+      - uses: actions/cache/restore@v4
+        with:
+          path: .inspect-cache
+          key: inspect-cache-${{ github.run_id }}
+          restore-keys: inspect-cache-
+      - name: Gate
+        id: gate
+        run: python -m arena_evals gate --pr "$PR" --rerun-reason "$RERUN_REASON"
+      - uses: actions/cache/save@v4
+        if: always() && steps.baseline.outputs.cache-hit != 'true' && hashFiles('.arena-cache/baseline/**') != ''
+        with:
+          path: .arena-cache/baseline
+          key: arena-baseline-${{ steps.key.outputs.key }}
+      - uses: actions/cache/save@v4
+        if: always() && hashFiles('.inspect-cache/**') != ''
+        with:
+          path: .inspect-cache
+          key: inspect-cache-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: arena-eval-gh-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .arena-out
+          if-no-files-found: warn

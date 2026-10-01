@@ -1,0 +1,25 @@
+name: arena-eval-fork-notice
+
+on:
+  pull_request_target:
+    paths:
+      - "prompts/**"
+      - "agents/**"
+      - "arena_evals/agents.py"
+      - "configs/**"
+      - "datasets/**"
+
+permissions:
+  pull-requests: write
+
+jobs:
+  notice:
+    # No checkout of PR code and no secrets: only posts a comment.
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }}
+          --body "Eval gate skipped: fork PRs have no access to API secrets. A maintainer can re-open this change from a same-repo branch."
