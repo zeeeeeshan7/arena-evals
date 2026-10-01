@@ -149,3 +149,11 @@ def task_means(rows: list[dict]) -> dict[str, float | None]:
         if r["success"] is not None:
             acc[r["task_id"]].append(float(r["success"]))
     return {t: (float(np.mean(v)) if v else None) for t, v in acc.items()}
+
+
+def paired_deltas(base_rows: list[dict], cand_rows: list[dict]) -> tuple[list[str], np.ndarray, list[str]]:
+    """(task_ids, d = cand - base, dropped task_ids). Tasks without a valid repeat on either side are dropped."""
+    b, c = task_means(base_rows), task_means(cand_rows)
+    ids = sorted(set(b) | set(c))
+    keep = [t for t in ids if b.get(t) is not None and c.get(t) is not None]
+    return keep, np.array([c[t] - b[t] for t in keep]), [t for t in ids if t not in keep]

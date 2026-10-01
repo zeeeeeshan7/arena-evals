@@ -83,3 +83,25 @@ def test_generate_and_score_write_results_and_manifest(cfg, dataset, tmp_path):
                 "inspect_version", "limits", "cost_usd", "label_noise_floor", "config"):
         assert key in m, key
     assert m["k"] == 2 and m["dataset_hash"] == datasets.dataset_hash(dataset)
+
+
+# ---------------------------------------------------------------- M3: paired comparison on real harness output
+BAD = dict(GOOD) | {
+    TASKS[0].input: ("HR-001", FINAL % ("25 days", '["HR-001"]', "false")),
+    TASKS[1].input: ("ORG-001", FINAL % ("Mara Lindqvist", '["ORG-001"]', "false")),
+    TASKS[2].input: ("PRC-001", FINAL % ("4975 USD", '["PRC-001"]', "false")),
+    TASKS[3].input: ("HR-002", FINAL % ("12 weeks", '["HR-002"]', "false")),
+    TASKS[4].input: ("HR-001", FINAL % ("500 USD", '["HR-999"]', "false")),  # hallucinated citation, no abstain
+}
+
+
+def test_e2e_known_verdicts(cfg, dataset, tmp_path):
+    from arena_evals.stats.bootstrap import gate_decision, paired_bootstrap
+
+    base = run.read_results(run_variant(cfg, dataset, tmp_path, GOOD, "base").results_path)
+    bad = run.read_results(run_variant(cfg, dataset, tmp_path, BAD, "bad").results_path)
+    same = run.read_results(run_variant(cfg, dataset, tmp_path, GOOD, "same").results_path)
+    hall = next(r for r in bad if r["task_id"] == "e2e-0005")
+    assert hall["success"] is False and hall["scores"]["citation_precision"] == 0.0
+    assert gate_decision(paired_bootstrap(run.paired_deltas(base, bad)[1], seed=cfg.eval["seed"])) == "block"
+    assert gate_decision(paired_bootstrap(run.paired_deltas(base, same)[1], seed=cfg.eval["seed"])) == "pass"
