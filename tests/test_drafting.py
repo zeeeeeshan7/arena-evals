@@ -50,3 +50,51 @@ def test_spotcheck_writes_final_split_and_noise_floor(tmp_path: Path):
     floor = datasets.label_noise_floor("dev", root)
     assert floor["n"] == 22 and floor["point"] == pytest.approx(2 / 22)
     assert floor["ci95"][0] < floor["point"] < floor["ci95"][1]
+
+
+def _scripted(calls: list, tag: str = "a"):
+    def replies():
+        while True:
+            calls.append(1)
+            n = len(calls)
+            items = [{"input": f"Question variant {tag}{n}-{j} about PTO days", "reference": "20 days",
+                      "gold_doc_ids": ["HR-001"], "answer_kind": "exact"} for j in range(15)]
+            yield ModelOutput.from_content("mockllm/model", json.dumps(items))
+    return get_model("mockllm/model", custom_outputs=replies(), memoize=False)
+
+
+def test_draft_reports_progress_and_checkpoints_after_every_batch(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(datasets, "TYPES", ("lookup",))
+    lines, saved = [], []
+    ckpt = tmp_path / "dev.partial.jsonl"
+
+    def progress(msg):
+        lines.append(msg)
+        saved.append(len(datasets.load(ckpt)))      # the checkpoint on disk is already current when we report
+
+    out = datasets.draft("dev", corpus.load(), _scripted([]), on_progress=progress, checkpoint=ckpt)
+    assert len(out) == 33 and saved == [15, 30, 33]
+    assert lines[0].startswith("lookup 15/33") and lines[-1].startswith("lookup 33/33")
+
+
+def test_draft_resumes_from_checkpoint_without_repaying(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(datasets, "TYPES", ("lookup",))
+    ckpt = tmp_path / "dev.partial.jsonl"
+    first = []
+    with pytest.raises(RuntimeError, match="interrupted"):          # simulate Ctrl+C after batch 2
+        datasets.draft("dev", corpus.load(), _scripted(first), checkpoint=ckpt,
+                       on_progress=lambda m: (_ for _ in ()).throw(RuntimeError("interrupted"))
+                       if m.startswith("lookup 30") else None)
+    assert len(datasets.load(ckpt)) == 30
+    calls = []
+    out = datasets.draft("dev", corpus.load(), _scripted(calls, "b"), checkpoint=ckpt)
+    assert len(calls) == 1 and len(out) == 33                       # one more batch, not three
+    assert [r.id for r in out][:2] == ["dev-0001", "dev-0002"] and out[-1].id == "dev-0033"
+
+
+def test_draft_refuses_a_checkpoint_from_another_split(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(datasets, "TYPES", ("lookup",))
+    ckpt = tmp_path / "x.partial.jsonl"
+    datasets.write_jsonl(ckpt, [rec(1, "lookup", split="calibration", text="other split question")])
+    with pytest.raises(ValueError, match="another split"):
+        datasets.draft("dev", corpus.load(), _scripted([]), checkpoint=ckpt)

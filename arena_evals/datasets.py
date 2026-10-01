@@ -182,22 +182,28 @@ def _parse_drafts(text: str) -> list[dict]:
 
 
 def draft(split: str, corpus_docs: dict[str, corpus.Doc], model, as_of: str = "2026-09-01",
-          batch: int = 15, max_batches_per_type: int = 12) -> list[TaskRecord]:
-    """Ask the drafting model for ceil(1.1 x mix) tasks per type; keep only schema-valid, corpus-consistent ones."""
-    return asyncio.run(_draft(split, corpus_docs, model, as_of, batch, max_batches_per_type))
+          batch: int = 15, max_batches_per_type: int = 12, on_progress: Callable[[str], None] | None = None,
+          checkpoint: Path | None = None) -> list[TaskRecord]:
+    """Ask the drafting model for ceil(1.1 x mix) tasks per type; keep only schema-valid, corpus-consistent ones.
+    `checkpoint` is rewritten after every batch and, if it already exists, resumed from, so an interrupted run
+    does not lose paid calls. `on_progress(line)` is called after each batch, once the checkpoint is current."""
+    return asyncio.run(_draft(split, corpus_docs, model, as_of, batch, max_batches_per_type, on_progress, checkpoint))
 
 
-async def _draft(split, corpus_docs, model, as_of, batch, max_batches_per_type) -> list[TaskRecord]:
+async def _draft(split, corpus_docs, model, as_of, batch, max_batches_per_type, on_progress=None,
+                 checkpoint=None) -> list[TaskRecord]:
     from inspect_ai.model import GenerateConfig, get_model
 
     m = get_model(model) if isinstance(model, str) else model
     corpus_text = "\n\n".join(d.text for d in corpus_docs.values())
     effective = _effective_ids(corpus_docs, as_of)
-    out: list[TaskRecord] = []
-    seen: set[str] = set()
+    out: list[TaskRecord] = load(checkpoint) if checkpoint and Path(checkpoint).exists() else []
+    if any(r.split != split for r in out):
+        raise ValueError(f"checkpoint {checkpoint} holds drafts for another split; delete it to start over")
+    seen: set[str] = {normalize(r.input) for r in out}
     for t in TYPES:
         want = -(-11 * mix_counts(split)[t] // 10)  # ceil(1.1 x mix), in integers to dodge float error
-        got = 0
+        got = sum(r.type == t for r in out)
         for _ in range(max_batches_per_type):
             if got >= want:
                 break
@@ -225,6 +231,10 @@ async def _draft(split, corpus_docs, model, as_of, batch, max_batches_per_type) 
                 seen.add(key)
                 out.append(rec)
                 got += 1
+            if checkpoint:
+                write_jsonl(checkpoint, out)
+            if on_progress:
+                on_progress(f"{t} {got}/{want} ({len(out)} drafts saved)")
         if got < want:
             raise RuntimeError(f"drafting produced only {got}/{want} valid {t} tasks; re-run or raise max_batches")
     return out

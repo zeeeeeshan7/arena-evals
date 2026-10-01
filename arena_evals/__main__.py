@@ -104,9 +104,14 @@ def main(argv: list[str] | None = None) -> int:
             return datasets.check(cfg.root)
         if args.action == "draft":
             _meter(cfg, None)
-            recs = datasets.draft(args.split, corpus.load(), args.model or cfg.models["drafter"]["model"])
-            print(f"wrote {len(recs)} drafts to "
-                  f"{datasets.write_jsonl(cfg.root / 'datasets' / 'drafts' / f'{args.split}.jsonl', recs)}")
+            drafts = cfg.root / "datasets" / "drafts"
+            partial = drafts / f"{args.split}.partial.jsonl"
+            if partial.exists():
+                print(f"resuming from {partial} (delete it to start over)", flush=True)
+            recs = datasets.draft(args.split, corpus.load(), args.model or cfg.models["drafter"]["model"],
+                                  on_progress=lambda m: print(m, flush=True), checkpoint=partial)
+            print(f"wrote {len(recs)} drafts to {datasets.write_jsonl(drafts / f'{args.split}.jsonl', recs)}")
+            partial.unlink(missing_ok=True)
             return 0
         print(f"wrote {datasets.spotcheck(args.split, args.frac)}")
         floor = datasets.label_noise_floor(args.split)
