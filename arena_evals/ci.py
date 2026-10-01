@@ -3,14 +3,22 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import shutil
+import subprocess
+import sys
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+import numpy as np
 from inspect_ai.model import GenerateConfig, get_model
 
-from arena_evals import agents, bias, calibration, corpus
-from arena_evals.config import Config, rubric_hash, sha256_files
+from arena_evals import agents, bias, calibration, corpus, datasets, report, run
+from arena_evals.agents import CostCapExceeded, CostMeter
+from arena_evals.config import Config, rubric_hash, scorer_hash, sha256_bytes, sha256_files
 from arena_evals.scorers import judge_answer
+from arena_evals.stats.bootstrap import bootstrap_ci, gate_decision, paired_bootstrap, per_tag
 
 
 # ---------------------------------------------------------------- certification (M5, M6)
@@ -111,3 +119,105 @@ def certify(cfg: Config, *, judge_model=None, perturber_model=None) -> int:
           f" to {b['length_partial_corr']['ci95'][1]:.3f}), pass: {b['length_partial_corr']['pass']}")
     print(f"certified: {certified} -> {cert_path(cfg)}")
     return 0 if certified else 1
+
+
+# ---------------------------------------------------------------- gate pieces (M7)
+EXIT = {"pass": 0, "warn": 0, "block": 1, "error": 2}
+
+
+class GitHub:
+    """Minimal GitHub REST client over urllib (GITHUB_TOKEN, GITHUB_REPOSITORY, GITHUB_API_URL)."""
+
+    def __init__(self, repo: str | None = None, token: str | None = None, api: str | None = None):
+        self.repo = repo or os.environ["GITHUB_REPOSITORY"]
+        self.token = token or os.environ["GITHUB_TOKEN"]
+        self.api = (api or os.environ.get("GITHUB_API_URL", "https://api.github.com")).rstrip("/")
+
+    def _req(self, method: str, path: str, body: dict | None = None):
+        req = urllib.request.Request(f"{self.api}{path}", method=method,
+                                     data=json.dumps(body).encode() if body is not None else None,
+                                     headers={"Authorization": f"Bearer {self.token}",
+                                              "Accept": "application/vnd.github+json",
+                                              "X-GitHub-Api-Version": "2022-11-28"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = resp.read()
+        return json.loads(data) if data else None
+
+    def pr(self, n: int) -> dict:
+        return self._req("GET", f"/repos/{self.repo}/pulls/{n}")
+
+    def changed_files(self, n: int) -> list[str]:
+        out, page = [], 1
+        while True:
+            batch = self._req("GET", f"/repos/{self.repo}/pulls/{n}/files?per_page=100&page={page}")
+            out += [f["filename"] for f in batch]
+            if len(batch) < 100:
+                return out
+            page += 1
+
+    def comments(self, n: int) -> list[dict]:
+        out, page = [], 1
+        while True:
+            batch = self._req("GET", f"/repos/{self.repo}/issues/{n}/comments?per_page=100&page={page}")
+            out += batch
+            if len(batch) < 100:
+                return out
+            page += 1
+
+    def upsert_comment(self, n: int, body: str) -> None:
+        mine = [c for c in self.comments(n) if report.MARKER_PREFIX in (c.get("body") or "")]
+        if mine:
+            self._req("PATCH", f"/repos/{self.repo}/issues/comments/{mine[-1]['id']}", {"body": body})
+        else:
+            self._req("POST", f"/repos/{self.repo}/issues/{n}/comments", {"body": body})
+
+    def set_status(self, sha: str, state: str, description: str, context: str, target_url: str = "") -> None:
+        body = {"state": state, "description": description[:140], "context": context}
+        if target_url:
+            body["target_url"] = target_url
+        self._req("POST", f"/repos/{self.repo}/statuses/{sha}", body)
+
+
+def cache_key(base_sha: str, cfg: Config, dataset_hash: str, rubric_hash_: str, scorer_hash_: str) -> str:
+    a, j = cfg.models["agent"], cfg.models["judge"]
+    parts = [base_sha, a["model"], j["model"], a["temperature"], j["temperature"],
+             {"agent": a["seed"], "judge": j["seed"], "bootstrap": cfg.eval["seed"]}, dataset_hash, rubric_hash_,
+             scorer_hash_]
+    return sha256_bytes(json.dumps(parts, sort_keys=True).encode()).removeprefix("sha256:")[:32]
+
+
+def judge_error_frac(rows: list[dict]) -> float:
+    return sum(r["scores"]["judge_error"] for r in rows) / len(rows) if rows else 0.0
+
+
+def worst(task_ids: list[str], d: np.ndarray, base_rows: list[dict], cand_rows: list[dict], n: int = 5) -> list[dict]:
+    b, c = run.task_means(base_rows), run.task_means(cand_rows)
+    trace = {}
+    for r in cand_rows:
+        if r["success"] is not True and r["trace_id"]:
+            trace.setdefault(r["task_id"], r["trace_id"])
+    order = sorted(range(len(task_ids)), key=lambda i: (d[i], task_ids[i]))[:n]
+    return [{"task_id": task_ids[i], "base": b[task_ids[i]], "cand": c[task_ids[i]], "d_pts": float(d[i]) * 100,
+             "trace_id": trace.get(task_ids[i], "")} for i in order if d[i] < 0]
+
+
+def tag_deltas(task_ids: list[str], d: np.ndarray, records: dict[str, datasets.TaskRecord]) -> dict[str, np.ndarray]:
+    out: dict[str, list[float]] = {}
+    for t, v in zip(task_ids, d):
+        for tag in records[t].tags:
+            out.setdefault(tag, []).append(float(v))
+    return {k: np.array(v) for k, v in out.items()}
+
+
+def rerun_action(prior: dict | None, head_sha: str, rerun_reason: str) -> str:
+    """'replay' = re-post the prior block without evaluating; 'evaluate' otherwise."""
+    if prior and prior.get("head_sha") == head_sha and prior.get("verdict") == "block" and not rerun_reason.strip():
+        return "replay"
+    return "evaluate"
+
+
+def artifact_url() -> str:
+    if os.environ.get("GITHUB_RUN_ID"):
+        return (f"{os.environ.get('GITHUB_SERVER_URL', 'https://github.com')}/{os.environ['GITHUB_REPOSITORY']}"
+                f"/actions/runs/{os.environ['GITHUB_RUN_ID']}")
+    return ""
