@@ -19,3 +19,14 @@ def test_prompts_share_output_contract_and_regressed_drops_cite_and_verify():
     assert "verify" in load_prompt("baseline").lower()
     assert "verify" not in load_prompt("regressed").lower()
     assert "cite" not in open(agents.PROMPTS_DIR / "regressed.md", encoding="utf-8").read().lower()
+
+
+def test_regressed_prompt_drops_the_supersession_and_abstention_rules():
+    """The planted regression must change behaviour on conflicting-document and unanswerable tasks (30% of the
+    gate mix); dropping only cite-and-verify changed nothing measurable on answerable tasks."""
+    text = open(agents.PROMPTS_DIR / "regressed.md", encoding="utf-8").read().lower()
+    for rule in ("effective_date", "supersede", "abstain", "never guess", "outside knowledge"):
+        assert rule not in text, rule
+    for tool in ("search_docs", "get_doc", "calculate"):
+        assert tool in text                                   # same tools: only the discipline is gone
+    assert "always give" in text                              # the plausible "be more helpful" edit
