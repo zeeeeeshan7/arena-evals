@@ -1,0 +1,140 @@
+{"example_id": "cal-0013-verbose-r0", "task_id": "cal-0013", "variant": "verbose", "human_label": "pass", "labeler": "zeesh", "note": ""}
+{"example_id": "cal-0006-verbose-r0", "task_id": "cal-0006", "variant": "verbose", "human_label": "pass", "labeler": "zeesh", "note": ""}
+{"example_id": "cal-0006-concise-r0", "task_id": "cal-0006", "variant": "concise", "human_label": "pass", "labeler": "zeesh", "note": ""}
+{"example_id": "cal-0013-concise-r0", "task_id": "cal-0013", "variant": "concise", "human_label": "pass", "labeler": "zeesh", "note": ""}
+{"example_id": "cal-0013-regressed-r0", "task_id": "cal-0013", "variant": "regressed", "human_label": "pass", "labeler": "zeesh", "note": ""}
+{"example_id": "cal-0029-regressed-r0", "task_id": "cal-0029", "variant": "regressed", "human_label": "pass", "labeler": "zeesh", "note": ""}
+{"example_id": "cal-0006-baseline-r0", "task_id": "cal-0006", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0029-concise-r0", "task_id": "cal-0029", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0029-baseline-r0", "task_id": "cal-0029", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0013-baseline-r0", "task_id": "cal-0013", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0006-regressed-r0", "task_id": "cal-0006", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0029-verbose-r0", "task_id": "cal-0029", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0046-concise-r0", "task_id": "cal-0046", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0068-concise-r0", "task_id": "cal-0068", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0055-baseline-r0", "task_id": "cal-0055", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0044-concise-r0", "task_id": "cal-0044", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0062-regressed-r0", "task_id": "cal-0062", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0047-regressed-r0", "task_id": "cal-0047", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0045-verbose-r0", "task_id": "cal-0045", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0054-baseline-r0", "task_id": "cal-0054", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0049-verbose-r0", "task_id": "cal-0049", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0069-concise-r0", "task_id": "cal-0069", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0052-baseline-r0", "task_id": "cal-0052", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0052-verbose-r0", "task_id": "cal-0052", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0049-baseline-r0", "task_id": "cal-0049", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0054-concise-r0", "task_id": "cal-0054", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0044-baseline-r0", "task_id": "cal-0044", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0070-verbose-r0", "task_id": "cal-0070", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0062-concise-r0", "task_id": "cal-0062", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0062-verbose-r0", "task_id": "cal-0062", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0044-regressed-r0", "task_id": "cal-0044", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0061-baseline-r0", "task_id": "cal-0061", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0048-concise-r0", "task_id": "cal-0048", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0070-baseline-r0", "task_id": "cal-0070", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0061-concise-r0", "task_id": "cal-0061", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0065-regressed-r0", "task_id": "cal-0065", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0055-verbose-r0", "task_id": "cal-0055", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0060-concise-r0", "task_id": "cal-0060", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0066-baseline-r0", "task_id": "cal-0066", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0064-regressed-r0", "task_id": "cal-0064", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0048-verbose-r0", "task_id": "cal-0048", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0060-baseline-r0", "task_id": "cal-0060", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0046-baseline-r0", "task_id": "cal-0046", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0061-verbose-r0", "task_id": "cal-0061", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0046-regressed-r0", "task_id": "cal-0046", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0063-verbose-r0", "task_id": "cal-0063", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0054-regressed-r0", "task_id": "cal-0054", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0070-concise-r0", "task_id": "cal-0070", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0068-regressed-r0", "task_id": "cal-0068", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0063-concise-r0", "task_id": "cal-0063", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0048-regressed-r0", "task_id": "cal-0048", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0065-baseline-r0", "task_id": "cal-0065", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0063-regressed-r0", "task_id": "cal-0063", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0052-regressed-r0", "task_id": "cal-0052", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0053-regressed-r0", "task_id": "cal-0053", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0068-verbose-r0", "task_id": "cal-0068", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0069-baseline-r0", "task_id": "cal-0069", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0067-regressed-r0", "task_id": "cal-0067", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0045-regressed-r0", "task_id": "cal-0045", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0065-verbose-r0", "task_id": "cal-0065", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0060-regressed-r0", "task_id": "cal-0060", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0064-verbose-r0", "task_id": "cal-0064", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0048-baseline-r0", "task_id": "cal-0048", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0061-regressed-r0", "task_id": "cal-0061", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0045-concise-r0", "task_id": "cal-0045", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0067-concise-r0", "task_id": "cal-0067", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0050-concise-r0", "task_id": "cal-0050", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0052-concise-r0", "task_id": "cal-0052", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0067-verbose-r0", "task_id": "cal-0067", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0070-regressed-r0", "task_id": "cal-0070", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0064-baseline-r0", "task_id": "cal-0064", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0044-verbose-r0", "task_id": "cal-0044", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0045-baseline-r0", "task_id": "cal-0045", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0069-verbose-r0", "task_id": "cal-0069", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0066-verbose-r0", "task_id": "cal-0066", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0051-verbose-r0", "task_id": "cal-0051", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0069-regressed-r0", "task_id": "cal-0069", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0060-verbose-r0", "task_id": "cal-0060", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0047-verbose-r0", "task_id": "cal-0047", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0050-regressed-r0", "task_id": "cal-0050", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0055-regressed-r0", "task_id": "cal-0055", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0047-concise-r0", "task_id": "cal-0047", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0054-verbose-r0", "task_id": "cal-0054", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0062-baseline-r0", "task_id": "cal-0062", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0066-concise-r0", "task_id": "cal-0066", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0046-verbose-r0", "task_id": "cal-0046", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0049-concise-r0", "task_id": "cal-0049", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0064-concise-r0", "task_id": "cal-0064", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0055-concise-r0", "task_id": "cal-0055", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0051-concise-r0", "task_id": "cal-0051", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0068-baseline-r0", "task_id": "cal-0068", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0053-concise-r0", "task_id": "cal-0053", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0063-baseline-r0", "task_id": "cal-0063", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0051-baseline-r0", "task_id": "cal-0051", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0067-baseline-r0", "task_id": "cal-0067", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0065-concise-r0", "task_id": "cal-0065", "variant": "concise", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0050-baseline-r0", "task_id": "cal-0050", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0051-regressed-r0", "task_id": "cal-0051", "variant": "regressed", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0047-baseline-r0", "task_id": "cal-0047", "variant": "baseline", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0050-verbose-r0", "task_id": "cal-0050", "variant": "verbose", "human_label": "pass", "labeler": "claude", "note": "answer matches reference; every claim in a cited document"}
+{"example_id": "cal-0051-verbose-r0~wrong_number", "task_id": "cal-0051", "variant": "verbose", "human_label": "fail", "labeler": "construction", "note": "wrong_number"}
+{"example_id": "cal-0052-verbose-r0~wrong_number", "task_id": "cal-0052", "variant": "verbose", "human_label": "fail", "labeler": "construction", "note": "wrong_number"}
+{"example_id": "cal-0066-concise-r0~wrong_number", "task_id": "cal-0066", "variant": "concise", "human_label": "fail", "labeler": "construction", "note": "wrong_number"}
+{"example_id": "cal-0062-verbose-r0~wrong_number", "task_id": "cal-0062", "variant": "verbose", "human_label": "fail", "labeler": "construction", "note": "wrong_number"}
+{"example_id": "cal-0063-baseline-r0~wrong_number", "task_id": "cal-0063", "variant": "baseline", "human_label": "fail", "labeler": "construction", "note": "wrong_number"}
+{"example_id": "cal-0064-concise-r0~wrong_number", "task_id": "cal-0064", "variant": "concise", "human_label": "fail", "labeler": "construction", "note": "wrong_number"}
+{"example_id": "cal-0046-baseline-r0~wrong_number", "task_id": "cal-0046", "variant": "baseline", "human_label": "fail", "labeler": "construction", "note": "wrong_number"}
+{"example_id": "cal-0065-concise-r0~wrong_number", "task_id": "cal-0065", "variant": "concise", "human_label": "fail", "labeler": "construction", "note": "wrong_number"}
+{"example_id": "cal-0070-verbose-r0~wrong_number", "task_id": "cal-0070", "variant": "verbose", "human_label": "fail", "labeler": "construction", "note": "wrong_number"}
+{"example_id": "cal-0048-verbose-r0~wrong_number", "task_id": "cal-0048", "variant": "verbose", "human_label": "fail", "labeler": "construction", "note": "wrong_number"}
+{"example_id": "cal-0062-concise-r0~dropped_fact", "task_id": "cal-0062", "variant": "concise", "human_label": "fail", "labeler": "construction", "note": "dropped_fact"}
+{"example_id": "cal-0064-baseline-r0~dropped_fact", "task_id": "cal-0064", "variant": "baseline", "human_label": "fail", "labeler": "construction", "note": "dropped_fact"}
+{"example_id": "cal-0047-concise-r0~dropped_fact", "task_id": "cal-0047", "variant": "concise", "human_label": "fail", "labeler": "construction", "note": "dropped_fact"}
+{"example_id": "cal-0062-verbose-r0~dropped_fact", "task_id": "cal-0062", "variant": "verbose", "human_label": "fail", "labeler": "construction", "note": "dropped_fact"}
+{"example_id": "cal-0065-regressed-r0~dropped_fact", "task_id": "cal-0065", "variant": "regressed", "human_label": "fail", "labeler": "construction", "note": "dropped_fact"}
+{"example_id": "cal-0052-regressed-r0~dropped_fact", "task_id": "cal-0052", "variant": "regressed", "human_label": "fail", "labeler": "construction", "note": "dropped_fact"}
+{"example_id": "cal-0044-concise-r0~dropped_fact", "task_id": "cal-0044", "variant": "concise", "human_label": "fail", "labeler": "construction", "note": "dropped_fact"}
+{"example_id": "cal-0061-concise-r0~dropped_fact", "task_id": "cal-0061", "variant": "concise", "human_label": "fail", "labeler": "construction", "note": "dropped_fact"}
+{"example_id": "cal-0048-baseline-r0~dropped_fact", "task_id": "cal-0048", "variant": "baseline", "human_label": "fail", "labeler": "construction", "note": "dropped_fact"}
+{"example_id": "cal-0044-verbose-r0~dropped_fact", "task_id": "cal-0044", "variant": "verbose", "human_label": "fail", "labeler": "construction", "note": "dropped_fact"}
+{"example_id": "cal-0006-verbose-r0~unsupported_claim", "task_id": "cal-0006", "variant": "verbose", "human_label": "fail", "labeler": "construction", "note": "unsupported_claim"}
+{"example_id": "cal-0052-baseline-r0~unsupported_claim", "task_id": "cal-0052", "variant": "baseline", "human_label": "fail", "labeler": "construction", "note": "unsupported_claim"}
+{"example_id": "cal-0046-concise-r0~unsupported_claim", "task_id": "cal-0046", "variant": "concise", "human_label": "fail", "labeler": "construction", "note": "unsupported_claim"}
+{"example_id": "cal-0064-concise-r0~unsupported_claim", "task_id": "cal-0064", "variant": "concise", "human_label": "fail", "labeler": "construction", "note": "unsupported_claim"}
+{"example_id": "cal-0006-concise-r0~unsupported_claim", "task_id": "cal-0006", "variant": "concise", "human_label": "fail", "labeler": "construction", "note": "unsupported_claim"}
+{"example_id": "cal-0053-regressed-r0~unsupported_claim", "task_id": "cal-0053", "variant": "regressed", "human_label": "fail", "labeler": "construction", "note": "unsupported_claim"}
+{"example_id": "cal-0061-baseline-r0~unsupported_claim", "task_id": "cal-0061", "variant": "baseline", "human_label": "fail", "labeler": "construction", "note": "unsupported_claim"}
+{"example_id": "cal-0069-regressed-r0~unsupported_claim", "task_id": "cal-0069", "variant": "regressed", "human_label": "fail", "labeler": "construction", "note": "unsupported_claim"}
+{"example_id": "cal-0067-verbose-r0~unsupported_claim", "task_id": "cal-0067", "variant": "verbose", "human_label": "fail", "labeler": "construction", "note": "unsupported_claim"}
+{"example_id": "cal-0029-regressed-r0~unsupported_claim", "task_id": "cal-0029", "variant": "regressed", "human_label": "fail", "labeler": "construction", "note": "unsupported_claim"}
+{"example_id": "cal-0013-regressed-r0~wrong_citation", "task_id": "cal-0013", "variant": "regressed", "human_label": "fail", "labeler": "construction", "note": "wrong_citation"}
+{"example_id": "cal-0055-verbose-r0~wrong_citation", "task_id": "cal-0055", "variant": "verbose", "human_label": "fail", "labeler": "construction", "note": "wrong_citation"}
+{"example_id": "cal-0050-baseline-r0~wrong_citation", "task_id": "cal-0050", "variant": "baseline", "human_label": "fail", "labeler": "construction", "note": "wrong_citation"}
+{"example_id": "cal-0046-regressed-r0~wrong_citation", "task_id": "cal-0046", "variant": "regressed", "human_label": "fail", "labeler": "construction", "note": "wrong_citation"}
+{"example_id": "cal-0054-concise-r0~wrong_citation", "task_id": "cal-0054", "variant": "concise", "human_label": "fail", "labeler": "construction", "note": "wrong_citation"}
+{"example_id": "cal-0045-baseline-r0~wrong_citation", "task_id": "cal-0045", "variant": "baseline", "human_label": "fail", "labeler": "construction", "note": "wrong_citation"}
+{"example_id": "cal-0065-regressed-r0~wrong_citation", "task_id": "cal-0065", "variant": "regressed", "human_label": "fail", "labeler": "construction", "note": "wrong_citation"}
+{"example_id": "cal-0048-regressed-r0~wrong_citation", "task_id": "cal-0048", "variant": "regressed", "human_label": "fail", "labeler": "construction", "note": "wrong_citation"}
+{"example_id": "cal-0046-baseline-r0~wrong_citation", "task_id": "cal-0046", "variant": "baseline", "human_label": "fail", "labeler": "construction", "note": "wrong_citation"}
+{"example_id": "cal-0055-baseline-r0~wrong_citation", "task_id": "cal-0055", "variant": "baseline", "human_label": "fail", "labeler": "construction", "note": "wrong_citation"}

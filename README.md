@@ -34,6 +34,29 @@ minimum detectable effect is larger than the 7.3 pts quoted for n=300, so it rel
   near-verbatim repeats of dev/calibration tasks; they were reworded (same fact, same reference). The conflicting
   category therefore tests about five distinct facts, and the splits overlap in *facts* even though not in wording.
 
+## Judge certification
+
+The judge (`deepseek-v4-pro`, rubric `prompts/judge/rubric.md`) is certified on 140 labeled examples
+(`calibration/`, certificate `configs/judge.cert.json`). The gate refuses to run on a stale or failed certificate.
+
+| Check | Result | Bar |
+|---|---|---|
+| Cohen's kappa (95% CI) | 0.966 (0.908 to 1.000) | CI lower bound >= 0.4 and point >= 0.6 |
+| Raw agreement | 98.6% (96.4 to 100) | |
+| Precision / recall for "pass" | 1.00 / 0.98 | |
+| Verbosity slope | -0.56 pts per +50% length (CI -2.08 to 1.00) | CI upper bound <= 2 |
+| Length partial correlation | 0.082 (CI -0.020 to 0.206) | CI lower bound <= 0 |
+
+Confusion matrix (rows: human label fail/pass, columns: judge fail/pass): `[[40, 0], [2, 98]]`.
+
+**Read this before trusting the number.** The labels come from three sources, recorded per row in `calibration/labels.jsonl`:
+6 by the project owner, 94 by Claude, and 40 failing examples built by construction (`calibrate augment`: a changed
+number, a dropped fact, an unsupported claim, a wrong citation). The 100 real agent answers were all correct, so the
+failures are synthetic and fairly obvious; kappa therefore measures "rejects constructed errors, accepts correct
+answers", not behavior on subtle real mistakes. The two disagreements are concise answers that omitted a detail present
+in the reference ("one-time", "March and September"); the judge's stricter reading follows the rubric. The labels were
+not changed to match the judge. This is not a substitute for a human-labeled set of real failures.
+
 ## Commands
 
 | Command | What it does |

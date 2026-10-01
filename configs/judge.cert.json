@@ -1,0 +1,91 @@
+{
+  "certified": true,
+  "created_at": "2026-10-01T16:08:11Z",
+  "rubric_hash": "sha256:98566cd256d1e5107a04f93ade7d0b496ddd1a28cb0595e8affb210427ad1ee2",
+  "judge_model": "anthropic/deepseek-v4-pro",
+  "judge_temperature": 0.0,
+  "judge_temperature_via_extra_body": true,
+  "labels_hash": "sha256:0ccbbb68ccb4814ce6aef854462bb658ff29049a6a58a7317925253e3970876c",
+  "n_labels": 140,
+  "judge_errors": 0,
+  "thresholds": {
+    "kappa_ci_lower_min": 0.4,
+    "kappa_point_min": 0.6,
+    "verbosity_slope_max_pts": 2.0
+  },
+  "agreement": {
+    "raw": {
+      "point": 0.9857142857142858,
+      "ci95": [
+        0.9642857142857143,
+        1.0
+      ]
+    },
+    "kappa": {
+      "point": 0.9655172413793105,
+      "ci95": [
+        0.9083956972051824,
+        1.0
+      ]
+    },
+    "ac1": {
+      "point": 0.9756140045288278,
+      "ci95": [
+        0.9363665287941457,
+        1.0
+      ]
+    },
+    "pabak": {
+      "point": 0.9714285714285715,
+      "ci95": [
+        0.9285714285714286,
+        1.0
+      ]
+    },
+    "precision": {
+      "point": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    "recall": {
+      "point": 0.98,
+      "ci95": [
+        0.9484536082474226,
+        1.0
+      ]
+    },
+    "confusion": [
+      [
+        40,
+        0
+      ],
+      [
+        2,
+        98
+      ]
+    ]
+  },
+  "bias": {
+    "verbosity_slope_pts": {
+      "point": -0.5642711995850442,
+      "ci95": [
+        -2.077591031927418,
+        0.9976217306852876
+      ],
+      "pass": true,
+      "n_rows": 516
+    },
+    "length_partial_corr": {
+      "point": 0.0822316057226194,
+      "ci95": [
+        -0.020200245835454312,
+        0.20623831176838617
+      ],
+      "pass": true,
+      "n": 72
+    },
+    "self_preference_warning": true
+  }
+}
