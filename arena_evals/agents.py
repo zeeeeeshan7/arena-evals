@@ -169,3 +169,45 @@ def calculate() -> Tool:
             return f"error: {e}"
 
     return execute
+
+
+# ---------------------------------------------------------------- FINAL line + solver
+class Final(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    answer: str
+    citations: list[str]
+    abstain: bool
+
+
+def parse_final(text: str) -> Final | None:
+    """Parse the last `FINAL: {...}` line. None if missing or invalid (-> status format_error)."""
+    for line in reversed((text or "").splitlines()):
+        line = line.strip()
+        if line.startswith("FINAL:"):
+            try:
+                return Final.model_validate_json(line[len("FINAL:"):])
+            except ValidationError:
+                return None
+    return None
+
+
+def load_prompt(variant: str, prompts_dir: str | Path = PROMPTS_DIR) -> str:
+    d = Path(prompts_dir)
+    return (d / f"{variant}.md").read_text(encoding="utf-8").rstrip() + "\n\n" + \
+        (d / "_output_contract.md").read_text(encoding="utf-8")
+
+
+@solver
+def arena_agent(variant: str, prompts_dir: str = str(PROMPTS_DIR), cache: bool = True) -> Solver:
+    # ponytail: inserts ChatMessageSystem directly; inspect's system_message() str-formats and mangles the JSON braces
+    prompt = load_prompt(variant, prompts_dir)
+    tools = use_tools(search_docs(), get_doc(), calculate())
+    loop = generate(tool_calls="loop", cache=CachePolicy(expiry=None) if cache else False)
+
+    async def solve(state: TaskState, generate_fn: Generate) -> TaskState:
+        METER.check()
+        state.messages.insert(0, ChatMessageSystem(content=prompt))
+        state = await tools(state, generate_fn)
+        return await loop(state, generate_fn)
+
+    return solve
