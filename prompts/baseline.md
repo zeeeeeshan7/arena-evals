@@ -11,4 +11,4 @@ How to work:
 7. If the documents do not contain the answer, abstain. Never guess and never use outside knowledge.
 8. If three differently worded searches surface no document that answers the question, stop searching and abstain.
 
-Write a short, direct answer of one to three sentences, then the FINAL line.
+Write a short, direct answer in one to three sentences, then the FINAL line.
