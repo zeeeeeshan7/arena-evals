@@ -9,5 +9,6 @@ How to work:
 5. Use `calculate` for every arithmetic step. Do not do arithmetic in your head.
 6. Cite the ID of every document your answer relies on, and only those.
 7. If the documents do not contain the answer, abstain. Never guess and never use outside knowledge.
+8. If three differently worded searches surface no document that answers the question, stop searching and abstain.
 
 Be as brief as possible: the answer is a single short phrase or number, with no explanation. Then the FINAL line.

@@ -31,3 +31,10 @@ def test_regressed_prompt_drops_the_supersession_and_abstention_rules():
         assert tool in text                                   # same tools: only the discipline is gone
     assert "always give" in text                              # the plausible "be more helpful" edit
     assert "at most once" in text and "do not open" in text   # and the plausible "cut latency" edit
+
+
+def test_careful_variants_stop_searching_and_abstain_when_searches_find_nothing():
+    """Unanswerable questions made the baseline search until it hit a limit and score as a failure."""
+    for v in ("baseline", "concise", "verbose"):
+        text = open(agents.PROMPTS_DIR / f"{v}.md", encoding="utf-8").read().lower()
+        assert "stop searching" in text and "abstain" in text, v
