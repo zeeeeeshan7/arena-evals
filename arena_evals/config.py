@@ -76,3 +76,29 @@ def scorer_hash(root: Path = ROOT) -> str:
     root = Path(root)
     corpus = sorted(p for p in (root / "corpus").rglob("*") if p.is_file()) if (root / "corpus").is_dir() else []
     return sha256_files(*(root / f for f in SCORING_FILES), *corpus)
+
+
+def temperature_sent(model_id: str) -> bool:
+    """False when Inspect drops `temperature` for this model (Anthropic names it treats as adaptive-thinking-only,
+    e.g. deepseek-v4-pro). Asks Inspect rather than guessing from the name; no network call is made."""
+    if not model_id.startswith("anthropic/"):
+        return True
+    import os
+
+    from inspect_ai.model import get_model
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    os.environ["ANTHROPIC_API_KEY"] = key or "unused-no-call-made"
+    try:
+        api = get_model(model_id).api
+        return not (hasattr(api, "is_claude_4_7_or_later") and api.is_claude_4_7_or_later())
+    finally:
+        if key is None:
+            del os.environ["ANTHROPIC_API_KEY"]
+
+
+def model_args(model_id: str, temperature: float | None) -> dict:
+    """get_model()/eval() model_args that make `temperature` reach the API. Inspect drops it for unrecognised
+    Anthropic-provider names, but forwards `extra_body` verbatim, so route it there. Empty when Inspect sends it."""
+    if temperature is None or temperature_sent(model_id):
+        return {}
+    return {"extra_body": {"temperature": temperature}}

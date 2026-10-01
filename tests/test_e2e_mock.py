@@ -79,7 +79,7 @@ def test_generate_and_score_write_results_and_manifest(cfg, dataset, tmp_path):
     assert by[("e2e-0003", 0)]["scores"]["citation_precision"] == 1.0
     m = json.loads((tmp_path / "base" / "manifest.json").read_text())
     for key in ("run_id", "git_sha", "variant", "split", "dataset_hash", "prompt_hash", "rubric_hash", "scorer_hash",
-                "agent_model", "judge_model", "agent_temperature", "judge_temperature", "k", "seeds",
+                "agent_model", "judge_model", "agent_temperature", "judge_temperature", "judge_temperature_via_extra_body", "agent_temperature_via_extra_body", "k", "seeds",
                 "inspect_version", "limits", "cost_usd", "label_noise_floor", "config"):
         assert key in m, key
     assert m["k"] == 2 and m["dataset_hash"] == datasets.dataset_hash(dataset)

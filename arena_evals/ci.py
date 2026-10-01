@@ -16,7 +16,8 @@ from inspect_ai.model import GenerateConfig, get_model
 
 from arena_evals import agents, bias, calibration, corpus, datasets, report, run
 from arena_evals.agents import CostCapExceeded, CostMeter
-from arena_evals.config import SCORING_FILES, Config, rubric_hash, scorer_hash, sha256_bytes, sha256_files
+from arena_evals.config import (SCORING_FILES, Config, model_args, rubric_hash, scorer_hash, sha256_bytes,
+                                sha256_files, temperature_sent)
 from arena_evals.scorers import judge_answer
 from arena_evals.stats.bootstrap import bootstrap_ci, gate_decision, paired_bootstrap, per_tag
 
@@ -34,6 +35,7 @@ def current_cert_inputs(cfg: Config) -> dict:
     lp = labels_path(cfg)
     return {"rubric_hash": rubric_hash(cfg.rubric_dir), "judge_model": cfg.models["judge"]["model"],
             "judge_temperature": cfg.models["judge"]["temperature"],
+            "judge_temperature_via_extra_body": not temperature_sent(cfg.models["judge"]["model"]),
             "labels_hash": sha256_files(lp) if lp.exists() else None}
 
 
@@ -55,7 +57,9 @@ async def _certify_judgements(cfg: Config, labeled: list[dict], judge_model, per
                               ) -> tuple[list[bool | None], list[dict]]:
     """Re-judge every labeled answer, plus padded (+50%, +100%) and compressed versions of it."""
     jc = cfg.models["judge"]
-    jm = judge_model or get_model(jc["model"], config=GenerateConfig(temperature=jc["temperature"], seed=jc["seed"]))
+    jm = judge_model or get_model(
+        jc["model"], config=GenerateConfig(temperature=jc["temperature"], seed=jc["seed"]),
+        **model_args(jc["model"], jc["temperature"]))
     pm = perturber_model or get_model(cfg.models["perturber"]["model"])
     sem = asyncio.Semaphore(cfg.eval["max_connections"])
     docs = corpus.load(cfg.root / "corpus" / "docs")

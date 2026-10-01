@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 from arena_evals import agents, tracing
 from arena_evals.agents import _index, parse_final, usage_cost
-from arena_evals.config import ROOT
+from arena_evals.config import ROOT, model_args
 
 RUBRIC_DIR = ROOT / "prompts" / "judge"
 
@@ -173,7 +173,7 @@ def judge(model, rubric_dir: str = str(RUBRIC_DIR), temperature: float = 0.0, se
         if task["answer_kind"] != "free_text" or f is None or f.abstain:
             return Score(value={"judged": False, "correct": None, "faithful": None, "error": False, "cost_usd": 0.0})
         m = model if not isinstance(model, str) else get_model(
-            model, config=GenerateConfig(temperature=temperature, seed=seed))
+            model, config=GenerateConfig(temperature=temperature, seed=seed), **model_args(model, temperature))
         docs = {c: _index().docs[c].text for c in f.citations if c in _index().docs}
         with tracing.sample_span("arena.judge", task_id=str(state.sample_id), repeat=state.epoch - 1, model=str(m)):
             verdict, cost = await judge_answer(m, Path(rubric_dir), task["input"], task["reference"], f.answer, docs, cache)

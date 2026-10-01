@@ -18,7 +18,7 @@ from inspect_ai.model import GenerateConfig
 
 from arena_evals import bias, datasets, tracing
 from arena_evals.agents import CostCapExceeded, arena_agent, parse_final, usage_cost
-from arena_evals.config import Config, prompt_hash, rubric_hash, scorer_hash
+from arena_evals.config import Config, prompt_hash, model_args, rubric_hash, scorer_hash, temperature_sent
 from arena_evals.scorers import (abstention, answer_match, citation, gold_retrieval, judge, task_success,
                                  tool_call_count)
 
@@ -72,6 +72,7 @@ def generate(split: str, variant: str, prompts_dir: Path, dataset: Path, cfg: Co
         config=GenerateConfig(temperature=agent["temperature"], seed=agent["seed"]),
     )
     log = inspect_eval(task, model=model or agent["model"], log_dir=str(log_dir or cfg.root / "logs"),
+                       model_args=model_args(agent["model"], agent["temperature"]) if model is None else {},
                        fail_on_error=False, max_connections=cfg.eval["max_connections"], limit=limit,
                        metadata=meta)[0]
     tracing.flush()
@@ -145,6 +146,8 @@ def score(log: Path, dataset: Path, cfg: Config, *, judge_model=None, out_dir: P
         "rubric_hash": rubric_hash(cfg.rubric_dir), "scorer_hash": scorer_hash(cfg.root),
         "agent_model": str(scored.eval.model), "judge_model": str(jmodel),
         "agent_temperature": agent["temperature"], "judge_temperature": jcfg["temperature"],
+        "judge_temperature_via_extra_body": not temperature_sent(jcfg["model"]),
+        "agent_temperature_via_extra_body": not temperature_sent(agent["model"]),
         "k": meta.get("k"), "seeds": {"agent": agent["seed"], "judge": jcfg["seed"], "bootstrap": cfg.eval["seed"]},
         "inspect_version": importlib.metadata.version("inspect-ai"), "limits": cfg.eval["limits"],
         "cache": meta.get("cache"), "n_samples": len(rows), "cost_usd": sum(r["cost_usd"] for r in rows),
