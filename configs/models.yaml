@@ -9,7 +9,7 @@ judge:
   temperature: 0.0
   seed: 1234
 drafter:
-  model: anthropic/deepseek-v4-pro
+  model: anthropic/deepseek-flash      # drafts are hand-checked; flash is ~4x cheaper than pro
 perturber:
   model: anthropic/deepseek-flash
 # USD per million tokens. "default" is charged for any unlisted model so the cap never under-counts.

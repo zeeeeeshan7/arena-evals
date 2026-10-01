@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import random
 import re
 from pathlib import Path
@@ -16,7 +17,23 @@ from arena_evals.stats.agreement import wilson
 
 TYPES = ("lookup", "multi_hop", "arithmetic", "conflicting", "unanswerable")
 SHARES = {"lookup": 0.30, "multi_hop": 0.25, "arithmetic": 0.15, "conflicting": 0.15, "unanswerable": 0.15}
-SPLIT_SIZES = {"gate": 300, "calibration": 120, "dev": 100}
+DEFAULT_SPLIT_SIZES = {"gate": 300, "calibration": 120, "dev": 100}
+
+
+def parse_split_sizes(spec: str | None) -> dict[str, int]:
+    """DEFAULT_SPLIT_SIZES with overrides from "gate=150,calibration=60" (env ARENA_SPLIT_SIZES): a cheaper demo scale."""
+    sizes = dict(DEFAULT_SPLIT_SIZES)
+    for part in filter(None, (p.strip() for p in (spec or "").split(","))):
+        name, _, n = part.partition("=")
+        if name not in sizes:
+            raise ValueError(f"unknown split {name!r} in ARENA_SPLIT_SIZES (want one of {sorted(sizes)})")
+        if not n.isdigit() or int(n) < 1:
+            raise ValueError(f"ARENA_SPLIT_SIZES: {name} must be a positive integer, got {n!r}")
+        sizes[name] = int(n)
+    return sizes
+
+
+SPLIT_SIZES = parse_split_sizes(os.environ.get("ARENA_SPLIT_SIZES"))
 PREFIX = {"gate": "gate", "calibration": "cal", "dev": "dev"}
 
 

@@ -95,3 +95,13 @@ def test_check_fails_on_planted_near_duplicate(tmp_path: Path, capsys):
     datasets.write_jsonl(root / "datasets" / "dev.jsonl", [rec(1, split="dev", text=gate[0].input + "?")])
     assert datasets.check(root) == 1
     assert "near-duplicate: gate-0001 ~ dev-0001" in capsys.readouterr().out
+
+
+def test_split_sizes_can_be_overridden_for_a_cheaper_demo_scale():
+    assert datasets.parse_split_sizes(None) == {"gate": 300, "calibration": 120, "dev": 100}
+    assert datasets.parse_split_sizes("gate=150") == {"gate": 150, "calibration": 120, "dev": 100}
+    assert datasets.parse_split_sizes("gate=150, calibration=60") == {"gate": 150, "calibration": 60, "dev": 100}
+    with pytest.raises(ValueError, match="unknown split"):
+        datasets.parse_split_sizes("test=5")
+    with pytest.raises(ValueError, match="positive integer"):
+        datasets.parse_split_sizes("gate=abc")
