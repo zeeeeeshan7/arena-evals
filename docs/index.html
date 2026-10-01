@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="An eval gate for tool-using agents: a prompt change that cost 14.8 points was blocked, a harmless one passed. Intervals, judge calibration, cost and limits.">
+<meta property="og:title" content="Arena Eval Gate">
+<meta property="og:description" content="An eval gate for tool-using agents: a prompt change that cost 14.8 points was blocked, a harmless one passed. Intervals, judge calibration, cost and limits.">
+<meta property="og:type" content="website">
+<style>:root { color-scheme: light; } body { margin: 0; }</style>
+<title>Arena Eval Gate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column, a wide "result" band up top, then plain sections. The signature piece is a shared-axis
+   interval plot that sets the blocked PR and the passing PR against the gate threshold. */
+:root {
+  --bg: #F1F4F7;
+  --surface: #FFFFFF;
+  --ink: #12202C;
+  --muted: #566878;
+  --line: #D3DBE3;
+  --accent: #2247CF;
+  --block: #CF3126;
+  --block-tint: rgba(207, 49, 38, .07);
+  --pass: #1B8556;
+  --warn: #A9701A;
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1318; --surface: #141C23; --ink: #E7EDF2; --muted: #92A3B1; --line: #26323D;
+    --accent: #86A2FF; --block: #FF7468; --block-tint: rgba(255, 116, 104, .1); --pass: #4CC38A; --warn: #E0A248;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1318; --surface: #141C23; --ink: #E7EDF2; --muted: #92A3B1; --line: #26323D;
+  --accent: #86A2FF; --block: #FF7468; --block-tint: rgba(255, 116, 104, .1); --pass: #4CC38A; --warn: #E0A248;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.6 var(--f-body); padding-inline: clamp(16px, 4vw, 40px); padding-block: 28px 64px; }
+.wrap { max-width: 1040px; margin-inline: auto; display: flex; flex-direction: column; gap: 72px; }
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+h1, h2 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -.02em; }
+h1 { font-weight: 800; font-size: clamp(2.1rem, 5.6vw, 3.7rem); line-height: 1.04; max-width: 17ch; }
+h2 { font-weight: 800; font-size: clamp(1.45rem, 3vw, 2rem); line-height: 1.12; }
+p { margin: 0; max-width: 66ch; }
+.label { font: 500 .72rem/1.2 var(--f-data); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+
+.top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.top a { font: 500 .8rem var(--f-data); }
+
+.hero { display: flex; flex-direction: column; gap: 22px; }
+.hero p.lede { font-size: 1.12rem; color: var(--muted); }
+
+.results { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+.result { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 22px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.result header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.pill { font: 600 .72rem/1 var(--f-data); letter-spacing: .1em; padding: 6px 9px; border-radius: 3px; color: #fff; white-space: nowrap; }
+.pill.block { background: var(--block); }
+.pill.pass { background: var(--pass); }
+:root[data-theme="dark"] .pill { color: #0D1318; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pill { color: #0D1318; } }
+.result h3 { font: 600 1rem/1.35 var(--f-body); margin: 0; }
+.big { font: 800 clamp(2.6rem, 7vw, 3.6rem)/1 var(--f-display); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.big small { font: 500 .95rem var(--f-data); letter-spacing: 0; color: var(--muted); margin-left: .35em; }
+.block .big, .big.block { color: var(--block); }
+.big.pass { color: var(--pass); }
+dl.facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; font-size: .9rem; }
+dl.facts dt { color: var(--muted); }
+dl.facts dd { margin: 0; font: 400 .85rem var(--f-data); font-variant-numeric: tabular-nums; text-align: right; overflow-wrap: anywhere; }
+
+figure { margin: 0; display: flex; flex-direction: column; gap: 14px; }
+.fig { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 12px 8px; overflow-x: auto; }
+.fig svg { display: block; width: 100%; min-width: 620px; height: auto; }
+figcaption { font-size: .9rem; color: var(--muted); max-width: 72ch; }
+svg text { font-family: var(--f-data); fill: var(--muted); font-size: 12.5px; }
+svg .ink { fill: var(--ink); }
+svg .strong { fill: var(--ink); font-weight: 500; font-size: 13.5px; }
+svg .axis { stroke: var(--line); stroke-width: 1; }
+svg .zero { stroke: var(--ink); stroke-width: 1.5; }
+svg .gate { stroke: var(--block); stroke-width: 1.5; stroke-dasharray: 5 4; }
+svg .tint { fill: var(--block-tint); }
+svg .ci-block { stroke: var(--block); }
+svg .ci-pass { stroke: var(--pass); }
+svg .ci-tag { stroke: var(--accent); }
+svg .dot-block { fill: var(--block); }
+svg .dot-pass { fill: var(--pass); }
+svg .dot-tag { fill: var(--accent); }
+svg .ci { stroke-width: 5; stroke-linecap: butt; }
+svg .cap { stroke-width: 2; }
+svg .gatelabel { fill: var(--block); }
+
+.section { display: flex; flex-direction: column; gap: 22px; }
+.section .head { display: flex; flex-direction: column; gap: 10px; }
+ol.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 0; border-top: 1px solid var(--ink); }
+ol.steps li { counter-increment: s; padding: 16px 16px 8px 0; display: flex; flex-direction: column; gap: 8px; font-size: .93rem; min-width: 0; }
+ol.steps li::before { content: counter(s); font: 600 .8rem var(--f-data); color: var(--accent); }
+ol.steps b { font: 600 1rem var(--f-body); }
+.rule { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip { font: 400 .82rem var(--f-data); border: 1px solid var(--line); background: var(--surface); border-radius: 3px; padding: 5px 9px; }
+
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 16px; align-items: start; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 22px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+th, td { text-align: left; padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 500 .72rem var(--f-data); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+td.n { font: 400 .85rem var(--f-data); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; padding-right: 0; }
+.tablewrap { overflow-x: auto; }
+.matrix { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px; align-items: stretch; max-width: 420px; }
+.matrix div { padding: 14px 10px; text-align: center; font: 500 .8rem var(--f-data); color: var(--muted); display: flex; align-items: center; justify-content: center; }
+.matrix .cell { background: var(--bg); border: 1px solid var(--line); border-radius: 4px; font: 800 1.9rem var(--f-display); color: var(--ink); }
+.matrix .cell.hit { border-color: var(--pass); }
+.matrix .cell.miss { border-color: var(--warn); color: var(--warn); }
+.note { border-left: 3px solid var(--warn); padding: 4px 0 4px 16px; font-size: .95rem; display: flex; flex-direction: column; gap: 8px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 24px; border-top: 1px solid var(--ink); padding-top: 20px; }
+.stat b { display: block; font: 800 1.9rem/1.1 var(--f-display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.stat span { font-size: .88rem; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 8px; max-width: 70ch; }
+footer { display: flex; flex-direction: column; gap: 10px; font-size: .9rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 20px; }
+
+.controls { gap: 22px; }
+.ctl { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ctl label { font-size: .92rem; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.ctl output { font: 500 .9rem var(--f-data); font-variant-numeric: tabular-nums; color: var(--ink); }
+input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; margin: 0; }
+input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+button.reset { align-self: flex-start; font: 500 .82rem var(--f-data); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 8px 12px; cursor: pointer; }
+button.reset:hover { border-color: var(--muted); }
+button.reset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.vrow { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.vrow:last-child { border-bottom: 0; padding-bottom: 0; }
+.vrow .why { grid-column: 1 / -1; font: 400 .82rem var(--f-data); color: var(--muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.pill.warn { background: var(--warn); }
+.readout { font-size: 1.02rem; max-width: 70ch; }
+.readout b { font-family: var(--f-display); font-weight: 800; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 22px; font: 400 .8rem var(--f-data); color: var(--muted); }
+.legend i { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--accent); vertical-align: middle; margin-right: 8px; }
+.legend i.ref { border-top: 2px dashed var(--muted); }
+svg .curve { fill: none; stroke: var(--accent); stroke-width: 3; }
+svg .ref { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 6 5; }
+svg .p80 { stroke: var(--pass); stroke-width: 1.2; stroke-dasharray: 4 4; }
+svg .marker { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+svg .p80label { fill: var(--pass); }
+@media (prefers-reduced-motion: no-preference) { .result, .panel { transition: border-color .15s; } .result:hover, .panel:hover { border-color: var(--muted); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <span class="label">Eval gate · arena agents · 149 gate tasks</span>
+    <a href="https://github.com/zeeeeeshan7/arena-evals">github.com/zeeeeeshan7/arena-evals</a>
+  </div>
+
+  <section class="hero">
+    <h1>A prompt edit cost 14.8 points. The gate said no.</h1>
+    <p class="lede">The gate scores every prompt change against the last good version on 149 tasks, puts a confidence interval on the difference, and blocks the merge when the drop is real. These are the two pull requests that tested it.</p>
+
+    <div class="results">
+      <article class="result" id="pr1">
+        <header>
+          <div><div class="label">Pull request #1</div><h3>Search once, skip get_doc, always answer</h3></div>
+          <span class="pill block">BLOCK</span>
+        </header>
+        <div class="big block">−14.8<small>pts</small></div>
+        <dl class="facts">
+          <dt>Task success</dt><dd>98.2% → 83.4%</dd>
+          <dt>95% interval</dt><dd>−19.5 to −10.5</dd>
+          <dt>One-sided 97.5% upper</dt><dd>−10.5</dd>
+          <dt>P(delta &lt; 0)</dt><dd>1.000</dd>
+        </dl>
+      </article>
+      <article class="result" id="pr2">
+        <header>
+          <div><div class="label">Pull request #2</div><h3>Reword one sentence in the prompt</h3></div>
+          <span class="pill pass">PASS</span>
+        </header>
+        <div class="big pass">−0.4<small>pts</small></div>
+        <dl class="facts">
+          <dt>Task success</dt><dd>98.2% → 97.8%</dd>
+          <dt>95% interval</dt><dd>−1.8 to +0.7</dd>
+          <dt>One-sided 97.5% upper</dt><dd>+0.7</dd>
+          <dt>P(delta &lt; 0)</dt><dd>0.760</dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="head">
+      <span class="label">The result</span>
+      <h2>Same axis, same threshold</h2>
+    </div>
+    <figure>
+      <div class="fig"><svg id="fig-main" role="img" aria-label="Change in task success for pull requests 1 and 2 with 95 percent intervals against the minus 2 point gate threshold"></svg></div>
+      <figcaption>Change in task success, paired by task over 149 tasks with 3 repeats each. Bars are 95% intervals. The shaded band is where a drop at least as large as the threshold would count; it follows the slider below. The gate blocks only when the estimate is in that band and the one-sided 97.5% upper bound is below zero.</figcaption>
+    </figure>
+  </section>
+
+  <section class="section" id="try">
+    <div class="head">
+      <span class="label">Try it</span>
+      <h2>Move the threshold and watch the verdicts change</h2>
+      <p>The two pull requests are fixed. The rule is not. Change what counts as a regression and how confident the upper bound must be, and the plot above follows. Intervals here use a normal approximation anchored to the bounds in the PR comments.</p>
+    </div>
+    <div class="two">
+      <div class="panel controls">
+        <div class="ctl"><label for="eps">Drop that counts as a regression <output id="eps-o" for="eps"></output></label>
+          <input id="eps" type="range" min="0.1" max="10" step="0.1" value="2"></div>
+        <div class="ctl"><label for="q">Confidence of the one-sided upper bound <output id="q-o" for="q"></output></label>
+          <input id="q" type="range" min="0" max="4" step="1" value="2"></div>
+        <button class="reset" id="reset" type="button">Reset to the real settings</button>
+      </div>
+      <div class="panel" id="verdicts" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="section" id="power">
+    <div class="head">
+      <span class="label">What it can catch</span>
+      <h2>How big a drop does the gate need to see?</h2>
+      <p>A real drop is only caught if it clears both the threshold and the noise. More tasks and steadier tasks make smaller drops visible. The dashed curve is the original plan: 300 tasks and more noise per task.</p>
+    </div>
+    <div class="panel">
+      <div class="two" style="gap:22px">
+        <div class="ctl"><label for="d">True drop in task success <output id="d-o" for="d"></output></label>
+          <input id="d" type="range" min="0" max="20" step="0.5" value="7"></div>
+        <div class="ctl"><label for="n">Tasks in the gate set <output id="n-o" for="n"></output></label>
+          <input id="n" type="range" min="30" max="400" step="1" value="149"></div>
+        <div class="ctl"><label for="sd">Spread of per-task differences (SD) <output id="sd-o" for="sd"></output></label>
+          <input id="sd" type="range" min="0.05" max="0.5" step="0.01" value="0.28"></div>
+      </div>
+      <p class="readout" id="readout" aria-live="polite"></p>
+      <div class="fig" style="border:0;background:transparent;padding:0"><svg id="fig-power" role="img" aria-label="Probability that the gate blocks as a function of the true drop"></svg></div>
+      <div class="legend"><span><i></i>your settings</span><span><i class="ref"></i>original plan: 300 tasks, SD 0.45</span></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="head">
+      <span class="label">The rule</span>
+      <h2>How a pull request gets judged</h2>
+    </div>
+    <ol class="steps">
+      <li><b>Run both prompts</b>The last good prompt and the PR's prompt answer the same 149 gate tasks, three times each.</li>
+      <li><b>Score every answer</b>Exact checks for numbers, citations and abstention. A certified LLM judge grades free-text answers.</li>
+      <li><b>Bootstrap the difference</b>Average the repeats per task, then resample tasks 10,000 times on the paired differences.</li>
+      <li><b>Decide</b>Block if the drop is at least 2 pts and the upper bound is below zero. Warn if only the estimate crosses. Otherwise pass.</li>
+      <li><b>Report</b>One comment on the PR, a status check that can block the merge, and the traces as an artifact.</li>
+    </ol>
+    <div class="rule">
+      <span class="chip">threshold ε = 2 pts</span>
+      <span class="chip">one-sided 97.5% bound</span>
+      <span class="chip">10,000 resamples</span>
+      <span class="chip">minimum detectable effect 6.4 pts at n=149</span>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="head">
+      <span class="label">Pull request #1, by tag</span>
+      <h2>Where the drop landed</h2>
+    </div>
+    <figure>
+      <div class="fig"><svg id="fig-tags" role="img" aria-label="Change in task success per tag for pull request 1"></svg></div>
+      <figcaption>Advisory only: the gate never decides on tags. Every one of the ten tags moved down. The intervals are wide because a tag holds 18 to 62 tasks. All ten are flagged after a Benjamini-Hochberg correction at q = 0.05.</figcaption>
+    </figure>
+  </section>
+
+  <section class="section">
+    <div class="head">
+      <span class="label">The judge</span>
+      <h2>How far the judge can be trusted</h2>
+      <p>The gate refuses to run unless the judge is certified against labelled answers. Certification passed. Read the limits next to it.</p>
+    </div>
+    <div class="two">
+      <div class="panel">
+        <span class="label">Agreement with labels, n = 140</span>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Check</th><th style="text-align:right">Result</th></tr></thead>
+          <tbody>
+            <tr><td>Cohen's kappa (needs lower bound ≥ 0.4)</td><td class="n">0.966 [0.908, 1.000]</td></tr>
+            <tr><td>Raw agreement</td><td class="n">98.6% [96.4, 100]</td></tr>
+            <tr><td>Precision, recall for "pass"</td><td class="n">1.00, 0.98</td></tr>
+            <tr><td>Verbosity slope, pts per +50% length (needs ≤ 2)</td><td class="n">−0.56 [−2.08, 1.00]</td></tr>
+            <tr><td>Length partial correlation</td><td class="n">0.082 [−0.020, 0.206]</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="panel">
+        <span class="label">Human label against judge verdict</span>
+        <div class="matrix" role="table" aria-label="Confusion matrix">
+          <div></div><div>judge: fail</div><div>judge: pass</div>
+          <div>label: fail</div><div class="cell hit">40</div><div class="cell">0</div>
+          <div>label: pass</div><div class="cell miss">2</div><div class="cell hit">98</div>
+        </div>
+        <p style="font-size:.9rem;color:var(--muted)">Labels: 6 by the project owner, 94 by Claude, 40 failing answers built by construction.</p>
+      </div>
+    </div>
+    <div class="note">
+      <p><b>What this does not show.</b> All 100 real agent answers were correct, so the 40 failures are constructed: a changed number, a dropped fact, an unsupported claim, a wrong citation. They are fairly obvious. Kappa shows the judge rejects constructed errors and accepts correct answers. It does not show how the judge handles subtle real mistakes.</p>
+      <p>The two disagreements are short answers that left out a detail present in the reference ("one-time", "March and September"). The judge's stricter reading follows the rubric. The labels were not changed to match it.</p>
+      <p>Agent (deepseek-flash) and judge (deepseek-v4-pro) come from the same vendor, so every PR comment carries a self-preference warning.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="head">
+      <span class="label">The cost</span>
+      <h2>What one gate run takes</h2>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>$0.60</b><span>DeepSeek spend for the gate run on PR #1</span></div>
+      <div class="stat"><b>~6 min</b><span>wall time from push to verdict</span></div>
+      <div class="stat"><b>447</b><span>agent runs per side: 149 tasks × 3 repeats</span></div>
+      <div class="stat"><b>182</b><span>unit tests, run on every push</span></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="head">
+      <span class="label">Limits</span>
+      <h2>What to keep in mind</h2>
+    </div>
+    <ul class="plain">
+      <li>The gate set has 149 tasks, not the 300 in the original plan, to fit a small model budget. That is why only drops of roughly 6 points or more are reliably caught.</li>
+      <li>The corpus has 40 synthetic documents and five conflicting pairs, so the conflicting-documents category tests about five distinct facts. Splits overlap in facts, not in wording; 26 gate questions were reworded after a near-duplicate check.</li>
+      <li>Datasets were spot-checked on a 10% sample. Label-noise floor: dev 9.1% (95% interval 1.6 to 37.7), gate 0.0% (0 to 18.4).</li>
+      <li>The planted regression took three tries to become real. The first version changed nothing measurable, which is itself a reason to measure a gate against a known-bad change.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>Built with Inspect AI, Phoenix tracing, GitHub Actions and a seeded bootstrap in numpy. Agent and judge run on DeepSeek through its Anthropic-compatible API.</span>
+    <span><a href="https://github.com/zeeeeeshan7/arena-evals">Repository</a> · <a href="https://github.com/zeeeeeshan7/arena-evals/pull/1">PR #1, blocked</a> · <a href="https://github.com/zeeeeeshan7/arena-evals/pull/2">PR #2, passed</a></span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var NS = "http://www.w3.org/2000/svg";
+  function el(parent, tag, attrs, text) {
+    var n = document.createElementNS(NS, tag);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (text != null) n.textContent = text;
+    parent.appendChild(n);
+    return n;
+  }
+  function tip(node, text) { el(node, "title", {}, text); return node; }
+  function fmt(v) { return (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1); }
+  function tick(t) { return t === 0 ? "0" : String(t).replace("-", "−"); }
+  function scale(min, max, left, right) { return function (v) { return left + (v - min) / (max - min) * (right - left); }; }
+  function $(id) { return document.getElementById(id); }
+
+  // Standard normal CDF (Abramowitz-Stegun erf).
+  function erf(x) {
+    var s = x < 0 ? -1 : 1; x = Math.abs(x);
+    var t = 1 / (1 + 0.3275911 * x);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+    return s * y;
+  }
+  function Phi(x) { return 0.5 * (1 + erf(x / Math.SQRT2)); }
+
+  var Z = [1.2816, 1.6449, 1.96, 2.3263, 2.5758], QL = ["90%", "95%", "97.5%", "99%", "99.5%"];
+  var Z80 = 0.8416;
+  var DEFAULT = { eps: 2, q: 2, d: 7, n: 149, sd: 0.28 };
+  var S = { eps: 2, q: 2, d: 7, n: 149, sd: 0.28 };
+
+  // The measured results. se is anchored so the reported 97.5% upper bound is reproduced exactly at the default.
+  var PR = [
+    { name: "#1  search once, always answer", p: -14.8, lo: -19.5, hi: -10.5, up: -10.5, cls: "block" },
+    { name: "#2  reword one sentence", p: -0.4, lo: -1.8, hi: 0.7, up: 0.7, cls: "pass" }
+  ];
+  PR.forEach(function (r) { r.se = (r.up - r.p) / 1.96; });
+  function verdict(r) {
+    var up = r.p + Z[S.q] * r.se, drop = r.p <= -S.eps + 1e-9;
+    return { up: up, v: drop && up < 0 ? "block" : drop ? "warn" : "pass", drop: drop };
+  }
+
+  // Figure 1: both pull requests against the threshold the viewer set.
+  function drawMain() {
+    var svg = $("fig-main"); svg.textContent = "";
+    var W = 760, H = 250, min = -32, max = 6, x = scale(min, max, 20, W - 20);
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    el(svg, "rect", { x: x(min), y: 46, width: x(-S.eps) - x(min), height: 150, "class": "tint" });
+    [-30, -20, -10, 0].forEach(function (t) {
+      el(svg, "line", { x1: x(t), x2: x(t), y1: 46, y2: 196, "class": t === 0 ? "zero" : "axis" });
+      el(svg, "text", { x: x(t), y: 218, "text-anchor": "middle" }, tick(t));
+    });
+    el(svg, "text", { x: W / 2, y: 242, "text-anchor": "middle" }, "change in task success, points");
+    el(svg, "line", { x1: x(-S.eps), x2: x(-S.eps), y1: 40, y2: 196, "class": "gate" });
+    el(svg, "text", { x: x(-S.eps) - 8, y: 30, "text-anchor": "end", "class": "gatelabel" }, "gate threshold −" + S.eps.toFixed(1) + " pts");
+    el(svg, "text", { x: x(0) + 8, y: 30 }, "no change");
+    [{ y: 100, r: PR[0] }, { y: 170, r: PR[1] }].forEach(function (o) {
+      var r = o.r, v = verdict(r), y = o.y;
+      var g = el(svg, "g", {});
+      el(g, "text", { x: 20, y: y - 24, "class": "strong" }, r.name);
+      el(g, "line", { x1: x(r.lo), x2: x(r.hi), y1: y, y2: y, "class": "ci ci-" + r.cls });
+      [r.lo, r.hi].forEach(function (e) { el(g, "line", { x1: x(e), x2: x(e), y1: y - 9, y2: y + 9, "class": "cap ci-" + r.cls }); });
+      el(g, "circle", { cx: x(r.p), cy: y, r: 7.5, "class": "dot-" + r.cls });
+      var label = fmt(r.p) + " pts  " + v.v.toUpperCase();
+      var flip = x(r.hi) + 16 + label.length * 8.2 > W - 8;
+      el(g, "text", { x: flip ? x(r.lo) - 16 : x(r.hi) + 16, y: y + 4.5, "text-anchor": flip ? "end" : "start", "class": "strong" }, label);
+      tip(g, "PR " + r.name.trim() + ": " + fmt(r.p) + " pts, 95% interval " + fmt(r.lo) + " to " + fmt(r.hi));
+    });
+  }
+
+  function renderVerdicts() {
+    var html = PR.map(function (r) {
+      var v = verdict(r);
+      var why = "estimate " + fmt(r.p) + (v.drop ? " ≤ " : " > ") + "−" + S.eps.toFixed(1) + "; " + QL[S.q] + " upper bound " + fmt(v.up) + (v.up < 0 ? " < 0" : " ≥ 0");
+      return '<div class="vrow"><span><b>' + r.name.trim() + '</b></span><span class="pill ' + v.v + '">' + v.v.toUpperCase() + '</span><span class="why">' + why + '</span></div>';
+    }).join("");
+    $("verdicts").innerHTML = '<span class="label">Verdict with these settings</span>' + html;
+  }
+
+  // Probability the gate blocks at a true drop d (pts): the estimate must be at or below -eps and its upper bound below zero.
+  function pBlock(d, n, sd, eps, z) {
+    var se = sd * 100 / Math.sqrt(n), thr = Math.max(eps, z * se);
+    return Phi((d - thr) / se);
+  }
+  function mde(n, sd, eps, z) { var se = sd * 100 / Math.sqrt(n); return Math.max(eps, z * se) + Z80 * se; }
+
+  function drawPower() {
+    var svg = $("fig-power"); svg.textContent = "";
+    var W = 760, H = 300, L = 52, R = 20, T = 26, B = 46, x = scale(0, 20, L, W - R), y = scale(0, 1, H - B, T);
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (g) {
+      el(svg, "line", { x1: L, x2: W - R, y1: y(g), y2: y(g), "class": "axis" });
+      el(svg, "text", { x: L - 8, y: y(g) + 4, "text-anchor": "end" }, Math.round(g * 100) + "%");
+    });
+    [0, 5, 10, 15, 20].forEach(function (t) { el(svg, "text", { x: x(t), y: H - 24, "text-anchor": "middle" }, String(t)); });
+    el(svg, "text", { x: (L + W - R) / 2, y: H - 4, "text-anchor": "middle" }, "true drop in task success, points");
+    el(svg, "text", { x: L, y: 14 }, "chance the gate blocks");
+    el(svg, "line", { x1: L, x2: W - R, y1: y(0.8), y2: y(0.8), "class": "p80" });
+    el(svg, "text", { x: W - R, y: y(0.8) - 6, "text-anchor": "end", "class": "p80label" }, "80%");
+    function path(n, sd, cls) {
+      var d = "";
+      for (var i = 0; i <= 100; i++) { var v = i * 0.2; d += (i ? "L" : "M") + x(v).toFixed(1) + " " + y(pBlock(v, n, sd, S.eps, Z[S.q])).toFixed(1); }
+      el(svg, "path", { d: d, "class": cls });
+    }
+    path(300, 0.45, "ref");
+    path(S.n, S.sd, "curve");
+    var p = pBlock(S.d, S.n, S.sd, S.eps, Z[S.q]);
+    el(svg, "line", { x1: x(S.d), x2: x(S.d), y1: y(0), y2: y(p), "class": "axis" });
+    tip(el(svg, "circle", { cx: x(S.d), cy: y(p), r: 7, "class": "marker" }), "true drop " + S.d.toFixed(1) + " pts: blocked " + Math.round(p * 100) + "% of the time");
+    var m = mde(S.n, S.sd, S.eps, Z[S.q]);
+    $("readout").innerHTML = "A true drop of <b>" + S.d.toFixed(1) + " pts</b> is blocked <b>" + Math.round(p * 100) +
+      "%</b> of the time. The gate catches a drop of <b>" + m.toFixed(1) + " pts</b> or more at least 80% of the time.";
+  }
+
+  // Figure 2: per-tag change for pull request 1, sorted by size.
+  function drawTags() {
+    var tags = [
+      ["org", 18, -29.6, -44.4, -16.7], ["conflicting", 22, -21.2, -34.8, -9.1], ["unanswerable", 22, -19.7, -34.8, -6.1],
+      ["multi_hop", 38, -17.5, -27.2, -9.6], ["incident", 25, -17.3, -28.0, -8.0], ["hr", 62, -13.4, -21.0, -7.0],
+      ["lookup", 45, -10.4, -17.0, -4.4], ["product", 24, -9.7, -20.8, -1.4], ["pricing", 21, -9.5, -20.6, -1.6],
+      ["arithmetic", 22, -7.6, -18.2, 0.0]
+    ];
+    var svg = $("fig-tags");
+    var W = 760, top = 34, row = 30, H = top + tags.length * row + 44, min = -48, max = 4, x = scale(min, max, 150, W - 24);
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    [-40, -30, -20, -10, 0].forEach(function (t) {
+      el(svg, "line", { x1: x(t), x2: x(t), y1: top - 8, y2: top + tags.length * row - 6, "class": t === 0 ? "zero" : "axis" });
+      el(svg, "text", { x: x(t), y: top + tags.length * row + 14, "text-anchor": "middle" }, tick(t));
+    });
+    el(svg, "text", { x: (x(min) + x(max)) / 2, y: H - 6, "text-anchor": "middle" }, "change in task success, points");
+    tags.forEach(function (t, i) {
+      var y = top + i * row + 8, g = el(svg, "g", {});
+      el(g, "text", { x: 20, y: y + 4.5, "class": "strong" }, t[0]);
+      el(g, "text", { x: 20, y: y + 4.5, dx: 112, "text-anchor": "end" }, "n " + t[1]);
+      el(g, "line", { x1: x(t[3]), x2: x(t[4]), y1: y, y2: y, "class": "ci ci-tag", "stroke-width": 4 });
+      el(g, "circle", { cx: x(t[2]), cy: y, r: 5.5, "class": "dot-tag" });
+      tip(g, t[0] + " (" + t[1] + " tasks): " + fmt(t[2]) + " pts, 95% interval " + fmt(t[3]) + " to " + fmt(t[4]));
+    });
+  }
+
+  function outputs() {
+    $("eps-o").textContent = S.eps.toFixed(1) + " pts";
+    $("q-o").textContent = QL[S.q];
+    $("d-o").textContent = S.d.toFixed(1) + " pts";
+    $("n-o").textContent = S.n + " tasks";
+    $("sd-o").textContent = S.sd.toFixed(2);
+  }
+  function all() { outputs(); drawMain(); renderVerdicts(); drawPower(); }
+
+  ["eps", "q", "d", "n", "sd"].forEach(function (id) {
+    $(id).addEventListener("input", function () { S[id] = parseFloat(this.value); all(); });
+  });
+  $("reset").addEventListener("click", function () {
+    for (var k in DEFAULT) { S[k] = DEFAULT[k]; $(k).value = DEFAULT[k]; }
+    all();
+  });
+  drawTags();
+  all();
+})();
+</script>
+</body>
+</html>

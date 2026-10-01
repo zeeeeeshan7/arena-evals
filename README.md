@@ -1,5 +1,7 @@
 # Arena Eval Harness
 
+**[Live report: a blocked regression, a passing change, and the numbers behind them](https://zeeeeeshan7.github.io/arena-evals/)** (interactive).
+
 A quality gate for the arena stand-in agents. A PR that changes `prompts/**`, `agents/**`, `arena_evals/agents.py`, `configs/**` or `datasets/**` gets ONE comment with the paired change in task success (with a two-sided 95% CI and a one-sided 97.5% upper bound), and merge is blocked when a drop of at least 2 pts is statistically real.
 
 Requirements: `PRD.md`. Design: `docs/superpowers/specs/2026-09-30-arena-eval-harness-design.md`.
