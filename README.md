@@ -19,6 +19,21 @@ Use explicit DeepSeek names: that endpoint maps any Claude model name to `deepse
 Agent and judge share a vendor, so the self-preference warning fires on every run; judge certification (agreement with your hand
 labels, verbosity tests) is the check that matters. Prices in `models.yaml` are DeepSeek peak-hour rates; the cost cap is `$4`.
 
+## Datasets and demo scale
+
+This repo runs at **demo scale** to fit a small model budget: splits are `dev` 100, `calibration` 120, `gate` 149
+(the PRD's n=300 is the default; set `ARENA_SPLIT_SIZES=gate=300` to rebuild at full size). With n=149 the gate's
+minimum detectable effect is larger than the 7.3 pts quoted for n=300, so it reliably catches only big regressions.
+
+- **Spot-check:** a seeded 10% sample of each split was reviewed against the source documents (dev 11, calibration 13,
+  gate 17). One dev task was dropped as ambiguous (a "combined raise" question with two valid answers). Label-noise
+  floor: dev 9.1% (95% CI 1.6-37.7%), calibration and gate 0 of the sampled tasks needed changes (gate floor 0.0%,
+  95% CI 0.0-18.4%). The intervals are wide because the samples are small. Verdicts: `datasets/spotcheck.jsonl`.
+- **Small corpus:** 40 documents and 5 conflicting document pairs, so the same facts recur across splits. The
+  near-duplicate check (`python -m arena_evals datasets check`) flagged 26 gate tasks that were verbatim or
+  near-verbatim repeats of dev/calibration tasks; they were reworded (same fact, same reference). The conflicting
+  category therefore tests about five distinct facts, and the splits overlap in *facts* even though not in wording.
+
 ## Commands
 
 | Command | What it does |
