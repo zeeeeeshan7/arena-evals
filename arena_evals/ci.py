@@ -221,3 +221,131 @@ def artifact_url() -> str:
         return (f"{os.environ.get('GITHUB_SERVER_URL', 'https://github.com')}/{os.environ['GITHUB_REPOSITORY']}"
                 f"/actions/runs/{os.environ['GITHUB_RUN_ID']}")
     return ""
+
+
+# ---------------------------------------------------------------- gate orchestration (M7)
+def generate_baseline(base_sha: str, cfg: Config, dataset: Path, log_dir: Path, max_usd: float, cache: bool) -> Path:
+    """Phase A from a worktree of the base commit (its agent + prompts) against the HEAD dataset file."""
+    wt = cfg.root / ".arena-base"
+    if wt.exists():
+        subprocess.run(["git", "worktree", "remove", "--force", str(wt)], cwd=cfg.root, check=False)
+        shutil.rmtree(wt, ignore_errors=True)
+    subprocess.run(["git", "worktree", "add", "--detach", str(wt), base_sha], cwd=cfg.root, check=True,
+                   capture_output=True)
+    if not (wt / "arena_evals" / "__main__.py").exists():
+        raise RuntimeError(f"base commit {base_sha[:12]} does not contain the eval harness")
+    cmd = [sys.executable, "-m", "arena_evals", "generate", "--split", cfg.gate["split"], "--variant",
+           cfg.gate["variant"], "--dataset", str(dataset), "--log-dir", str(log_dir), "--max-usd", f"{max_usd:.4f}"]
+    p = subprocess.run(cmd + ([] if cache else ["--no-cache"]), cwd=wt, capture_output=True, text=True)
+    if p.returncode == 3:
+        raise CostCapExceeded(p.stderr.strip().splitlines()[-1] if p.stderr.strip() else "cost cap hit in baseline")
+    if p.returncode != 0:
+        raise RuntimeError(f"baseline generate failed (exit {p.returncode}): {p.stderr[-2000:]}")
+    return Path(p.stdout.strip().splitlines()[-1])
+
+
+def gate(pr: int, cfg: Config, *, gh: GitHub | None = None, rerun_reason: str = "") -> int:
+    gh = gh or GitHub()
+    info = gh.pr(pr)
+    head_sha, base_sha = info["head"]["sha"], info["base"]["sha"]
+    ctx, split, variant = cfg.gate["status_context"], cfg.gate["split"], cfg.gate["variant"]
+    out = cfg.root / ".arena-out"
+    out.mkdir(exist_ok=True)
+    run_id = run.new_run_id()
+    ds = cfg.root / "datasets" / f"{split}.jsonl"
+    cap = cfg.eval["cost"]["max_usd_per_gate"]
+    meter = agents.set_meter(CostMeter(cap, cfg.models["prices"]))
+    cert: dict = {}
+    meta = {"head_sha": head_sha, "run_id": run_id, "artifact_url": artifact_url(), "rerun_reason": rerun_reason,
+            "eps_pts": cfg.gate["eps_pts"], "dataset_hash": datasets.dataset_hash(ds),
+            "rubric_hash": rubric_hash(cfg.rubric_dir), "self_preference_warning": bias.self_preference(cfg)}
+
+    def finish(verdict: str, body: str) -> int:
+        (out / "comment.md").write_text(body, encoding="utf-8", newline="\n")
+        (out / "gate.json").write_text(json.dumps(meta | {"verdict": verdict}, indent=2, default=str), encoding="utf-8")
+        gh.upsert_comment(pr, body)
+        state = "success" if verdict in ("pass", "warn") else "failure"
+        gh.set_status(head_sha, state, f"{verdict}: {meta.get('headline', meta.get('error', ''))}", ctx,
+                      meta["artifact_url"])
+        print(f"gate verdict: {verdict}")
+        return EXIT[verdict]
+
+    def fail(reason: str) -> int:
+        meta["error"] = reason
+        return finish("error", report.render(None, [], [], cert, {"spent": meter.spent, "cap": cap},
+                                             meta | {"verdict": "error"}))
+
+    # 1. cert check (auto-recertify only when this PR touched the judge)
+    changed = gh.changed_files(pr)
+    ok, why = cert_status(cfg)
+    cert = json.loads(cert_path(cfg).read_text(encoding="utf-8")) if cert_path(cfg).exists() else {}
+    if not ok:
+        if any(f.startswith("prompts/judge/") or f == "configs/models.yaml" for f in changed):
+            ok = certify(cfg) == 0
+            cert = json.loads(cert_path(cfg).read_text(encoding="utf-8"))
+            shutil.copy(cert_path(cfg), out / "judge.cert.json")
+            meta["recertified"] = True
+        if not ok:
+            return fail(f"judge uncertified ({why})")
+
+    # 2. rerun policy
+    prior_body = next((c["body"] for c in reversed(gh.comments(pr)) if report.MARKER_PREFIX in (c.get("body") or "")), "")
+    if rerun_action(report.parse_marker(prior_body), head_sha, rerun_reason) == "replay":
+        meta["headline"] = "prior block stands (re-run without a reason)"
+        return finish("block", report.replay_note(prior_body))
+    cache = bool(cfg.eval["cache"]) and not rerun_reason.strip()
+
+    try:
+        # 3. baseline: cache hit, or base worktree phase A + head phase B
+        key = cache_key(base_sha, cfg, meta["dataset_hash"], meta["rubric_hash"], scorer_hash(cfg.root))
+        bdir = cfg.root / ".arena-cache" / "baseline" / key
+        meta["baseline_cache"] = "hit" if cache and (bdir / "results.jsonl").exists() else "miss"
+        meta["baseline_rerun_on_head"] = any(f.startswith(("datasets/", "prompts/judge/")) for f in changed)
+        if meta["baseline_cache"] == "hit":
+            base_rows = run.read_results(bdir / "results.jsonl")
+            base_manifest = json.loads((bdir / "manifest.json").read_text(encoding="utf-8"))
+            shutil.copytree(bdir, out / "baseline", dirs_exist_ok=True)  # artifact carries both sides on a hit too
+        else:
+            log = generate_baseline(base_sha, cfg, ds, out / "logs-base", cap - meter.spent, cache)
+            b_out = run.score(log, ds, cfg, out_dir=out / "baseline", cache=cache)
+            base_rows, base_manifest = run.read_results(b_out.results_path), b_out.manifest
+            meter.spent = max(meter.spent, base_manifest["cost_usd"])
+            if cache:
+                bdir.mkdir(parents=True, exist_ok=True)
+                shutil.copy(b_out.results_path, bdir / "results.jsonl")
+                shutil.copy(out / "baseline" / "manifest.json", bdir / "manifest.json")
+        # 4. candidate, after a pre-flight cost check
+        need = base_manifest["cost_usd"] * cfg.eval["cost"]["preflight_factor"]
+        if need > cap - meter.spent:
+            return fail(f"cost pre-flight: candidate needs ~${need:.2f}, ${cap - meter.spent:.2f} of ${cap:.2f} left")
+        log = run.generate(split, variant, cfg.prompts_dir, ds, cfg, run_id=run_id, cache=cache,
+                           log_dir=out / "logs-cand")
+        c_out = run.score(log, ds, cfg, out_dir=out / "candidate", cache=cache)
+        cand_rows = run.read_results(c_out.results_path)
+    except (CostCapExceeded, RuntimeError) as e:
+        return fail(str(e))
+    except subprocess.CalledProcessError as e:
+        return fail(f"git failed: {' '.join(map(str, e.cmd))}: {(e.stderr or b'')[-500:]!r}")
+
+    # 5. compare
+    meta["judge_errors"] = {"baseline": sum(r["scores"]["judge_error"] for r in base_rows),
+                            "candidate": sum(r["scores"]["judge_error"] for r in cand_rows)}
+    if max(judge_error_frac(base_rows), judge_error_frac(cand_rows)) > cfg.gate["judge_error_max_frac"]:
+        return fail(f"judge errors above {cfg.gate['judge_error_max_frac']:.0%} of samples: {meta['judge_errors']}")
+    ids, d, dropped = run.paired_deltas(base_rows, cand_rows)
+    if len(ids) == 0:
+        return fail("no task has a valid repeat on both sides")
+    n_res, seed = cfg.eval["n_resamples"], cfg.eval["seed"]
+    paired = paired_bootstrap(d, n_res, seed)
+    verdict = gate_decision(paired, cfg.gate["eps_pts"], cfg.gate["upper_q"])
+    records = {r.id: r for r in datasets.load(ds)}
+    bm, cm = run.task_means(base_rows), run.task_means(cand_rows)
+    meta |= {"verdict": verdict, "dropped_tasks": dropped,
+             "base_rate": bootstrap_ci(np.array([bm[t] for t in ids]), n_res, seed).as_dict(),
+             "cand_rate": bootstrap_ci(np.array([cm[t] for t in ids]), n_res, seed).as_dict(),
+             "paired": paired.as_dict()}
+    meta["headline"] = f"{paired.delta * 100:+.1f} pts (97.5% upper {paired.upper_975 * 100:+.1f}, n={paired.n})"
+    tags = per_tag(tag_deltas(ids, d, records), n_res, seed, cfg.gate["bh_q"])
+    body = report.render(paired, tags, worst(ids, d, base_rows, cand_rows), cert,
+                         {"spent": meter.spent, "cap": cap}, meta)
+    return finish(verdict, body)
