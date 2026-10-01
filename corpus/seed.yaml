@@ -1,0 +1,294 @@
+# Every fact in the Halcyon Robotics corpus. `python -m arena_evals corpus build` renders corpus/docs/*.md.
+# Fact keys are unique across docs EXCEPT the 5 conflict pairs, where the newer doc (with `supersedes`)
+# restates the same key with a new value.
+company: Halcyon Robotics
+as_of: "2026-09-01"
+docs:
+  # ---------------- HR policy (10) ----------------
+  - id: HR-001
+    title: Paid Time Off Policy
+    effective_date: "2024-01-01"
+    facts:
+      - {key: pto_days, value: "20 days", text: "Full-time employees accrue {value} of paid time off per calendar year."}
+      - {key: pto_carryover, value: "5 days", text: "Up to {value} of unused paid time off may be carried into the next year."}
+    refs: [HR-008]
+  - id: HR-002
+    title: Parental Leave Policy (2023)
+    effective_date: "2023-04-01"
+    facts:
+      - {key: parental_leave_weeks, value: "12 weeks", text: "Employees with a new child receive {value} of fully paid parental leave."}
+      - {key: parental_leave_eligibility, value: "6 months", text: "Parental leave is available after {value} of continuous employment."}
+    refs: [HR-001]
+  - id: HR-003
+    title: Remote Work Policy (2023)
+    effective_date: "2023-03-01"
+    facts:
+      - {key: remote_stipend, value: "500 USD", text: "Remote employees receive a one-time home office stipend of {value}."}
+      - {key: remote_office_days, value: "2 days", text: "Hybrid employees are expected in a Halcyon office {value} per week."}
+    refs: [HR-005]
+  - id: HR-004
+    title: Travel and Expenses Policy
+    effective_date: "2024-02-15"
+    facts:
+      - {key: per_diem, value: "75 USD", text: "The meal per diem for business travel is {value} per day."}
+      - {key: hotel_cap, value: "220 USD", text: "Hotel bookings are capped at {value} per night without VP approval."}
+    refs: [ORG-001]
+  - id: HR-005
+    title: Equipment Policy
+    effective_date: "2024-05-01"
+    facts:
+      - {key: laptop_refresh, value: "36 months", text: "Company laptops are refreshed every {value}."}
+      - {key: equipment_budget, value: "2,400 USD", text: "Each new hire has an equipment budget of {value}."}
+    refs: [HR-003]
+  - id: HR-006
+    title: Learning and Development Budget
+    effective_date: "2024-01-01"
+    facts:
+      - {key: learning_budget, value: "1,500 USD", text: "Each employee has an annual learning budget of {value}."}
+      - {key: conference_limit, value: "2 conferences", text: "Employees may attend at most {value} per year on the learning budget."}
+    refs: [HR-008]
+  - id: HR-007
+    title: On-Call Compensation
+    effective_date: "2025-01-01"
+    facts:
+      - {key: oncall_weekend_pay, value: "150 USD", text: "Engineers are paid {value} for each weekend on-call shift."}
+      - {key: oncall_rotation, value: "6 engineers", text: "Each on-call rotation has at least {value}."}
+    refs: [ORG-003, INC-001]
+  - id: HR-008
+    title: Performance Review Cycle
+    effective_date: "2024-01-01"
+    facts:
+      - {key: review_months, value: "March and September", text: "Performance reviews are held twice a year, in {value}."}
+      - {key: review_raise_cap, value: "8%", text: "Merit raises are capped at {value} per review cycle."}
+    refs: [HR-006]
+  - id: HR-009
+    title: Parental Leave Policy (2025)
+    effective_date: "2025-07-01"
+    supersedes: HR-002
+    facts:
+      - {key: parental_leave_weeks, value: "16 weeks", text: "Employees with a new child receive {value} of fully paid parental leave."}
+    refs: [HR-001]
+  - id: HR-010
+    title: Remote Work Policy (2025)
+    effective_date: "2025-03-01"
+    supersedes: HR-003
+    facts:
+      - {key: remote_stipend, value: "750 USD", text: "Remote employees receive a one-time home office stipend of {value}."}
+    refs: [HR-005]
+  # ---------------- Product specs (9) ----------------
+  - id: PRD-001
+    title: Courier C1 Delivery Robot
+    effective_date: "2023-09-01"
+    facts:
+      - {key: c1_payload, value: "25 kg", text: "The Courier C1 carries a maximum payload of {value}."}
+      - {key: c1_speed, value: "6 km/h", text: "The Courier C1 has a top speed of {value}."}
+      - {key: c1_battery_hours, value: "10 hours", text: "A full charge runs the Courier C1 for {value}."}
+    refs: [PRD-005, PRC-004]
+  - id: PRD-002
+    title: Courier C2 Delivery Robot (launch spec)
+    effective_date: "2024-06-01"
+    facts:
+      - {key: c2_battery_hours, value: "14 hours", text: "A full charge runs the Courier C2 for {value}."}
+      - {key: c2_payload, value: "40 kg", text: "The Courier C2 carries a maximum payload of {value}."}
+    refs: [PRD-001]
+  - id: PRD-003
+    title: Sentinel S1 Security Robot
+    effective_date: "2023-11-01"
+    facts:
+      - {key: s1_camera_count, value: "6 cameras", text: "The Sentinel S1 has {value} covering 360 degrees."}
+      - {key: s1_patrol_range, value: "8 km", text: "The Sentinel S1 patrols up to {value} per shift."}
+    refs: [PRD-006]
+  - id: PRD-004
+    title: Harvest H1 Agricultural Robot
+    effective_date: "2024-03-01"
+    facts:
+      - {key: h1_rows_per_hour, value: "12 rows", text: "The Harvest H1 picks {value} of strawberries per hour."}
+      - {key: h1_weight, value: "180 kg", text: "The Harvest H1 weighs {value}."}
+    refs: [PRD-005]
+  - id: PRD-005
+    title: Dock Charging Station
+    effective_date: "2023-09-01"
+    facts:
+      - {key: dock_charge_time, value: "90 minutes", text: "The Dock charges any Halcyon robot from empty to full in {value}."}
+      - {key: dock_capacity, value: "4 robots", text: "One Dock serves up to {value}."}
+    refs: [PRD-001, PRD-004]
+  - id: PRD-006
+    title: Fleet Console Software
+    effective_date: "2024-01-15"
+    facts:
+      - {key: console_max_robots, value: "500 robots", text: "A single Fleet Console workspace manages up to {value}."}
+      - {key: console_uptime_sla, value: "99.9%", text: "Fleet Console has a monthly uptime SLA of {value}."}
+    refs: [PRC-001, PRC-002]
+  - id: PRD-007
+    title: Sentinel S2 Security Robot
+    effective_date: "2025-05-01"
+    facts:
+      - {key: s2_camera_count, value: "8 cameras", text: "The Sentinel S2 has {value} covering 360 degrees."}
+      - {key: s2_patrol_range, value: "12 km", text: "The Sentinel S2 patrols up to {value} per shift."}
+    refs: [PRD-003]
+  - id: PRD-008
+    title: Courier C2 Delivery Robot (revised spec)
+    effective_date: "2025-06-01"
+    supersedes: PRD-002
+    facts:
+      - {key: c2_battery_hours, value: "12 hours", text: "A full charge runs the Courier C2 for {value}."}
+    refs: [PRD-002, INC-004]
+  - id: PRD-009
+    title: Lift L1 Warehouse Robot
+    effective_date: "2025-02-01"
+    facts:
+      - {key: l1_lift_capacity, value: "600 kg", text: "The Lift L1 lifts pallets of up to {value}."}
+      - {key: l1_shelf_height, value: "3.2 m", text: "The Lift L1 reaches shelves up to {value} high."}
+    refs: [PRD-005, PRC-004]
+  # ---------------- Pricing (7) ----------------
+  - id: PRC-001
+    title: Fleet Console Pricing (2024)
+    effective_date: "2024-01-15"
+    facts:
+      - {key: pro_price_per_seat, value: "199 USD", text: "The Fleet Console Pro tier costs {value} per seat per month."}
+      - {key: pro_min_seats, value: "5 seats", text: "The Pro tier requires a minimum of {value}."}
+    refs: [PRD-006]
+  - id: PRC-002
+    title: Fleet Console Starter Tier
+    effective_date: "2024-01-15"
+    facts:
+      - {key: starter_price_per_seat, value: "49 USD", text: "The Fleet Console Starter tier costs {value} per seat per month."}
+      - {key: starter_max_seats, value: "10 seats", text: "The Starter tier is limited to {value}."}
+    refs: [PRD-006]
+  - id: PRC-003
+    title: Fleet Console Enterprise Tier
+    effective_date: "2024-01-15"
+    facts:
+      - {key: enterprise_price_per_seat, value: "159 USD", text: "The Fleet Console Enterprise tier costs {value} per seat per month."}
+      - {key: enterprise_min_seats, value: "50 seats", text: "The Enterprise tier requires a minimum of {value}."}
+    refs: [PRC-001, PRC-005]
+  - id: PRC-004
+    title: Robot Hardware Leasing
+    effective_date: "2024-04-01"
+    facts:
+      - {key: c1_lease, value: "890 USD", text: "Leasing a Courier C1 costs {value} per month."}
+      - {key: l1_lease, value: "2,150 USD", text: "Leasing a Lift L1 costs {value} per month."}
+      - {key: lease_term, value: "24 months", text: "The minimum lease term is {value}."}
+    refs: [PRD-001, PRD-009, PRC-007]
+  - id: PRC-005
+    title: Support Plans
+    effective_date: "2024-01-15"
+    facts:
+      - {key: premium_support_rate, value: "12%", text: "Premium support costs {value} of the annual contract value."}
+      - {key: premium_response_time, value: "1 hour", text: "Premium support guarantees a first response within {value}."}
+    refs: [ORG-002]
+  - id: PRC-006
+    title: Fleet Console Pricing (2025)
+    effective_date: "2025-01-01"
+    supersedes: PRC-001
+    facts:
+      - {key: pro_price_per_seat, value: "179 USD", text: "The Fleet Console Pro tier costs {value} per seat per month."}
+    refs: [PRD-006, PRC-003]
+  - id: PRC-007
+    title: Volume Discounts
+    effective_date: "2024-04-01"
+    facts:
+      - {key: volume_discount, value: "10%", text: "Orders of more than 100 robots receive a {value} discount on hardware."}
+      - {key: volume_discount_large, value: "15%", text: "Orders of more than 500 robots receive a {value} discount on hardware."}
+    refs: [PRC-004]
+  # ---------------- Incident postmortems (10) ----------------
+  - id: INC-001
+    title: "Postmortem: Fleet Console Outage"
+    effective_date: "2024-02-20"
+    facts:
+      - {key: inc001_duration, value: "47 minutes", text: "Fleet Console was unavailable for {value}."}
+      - {key: inc001_cause, value: "an expired TLS certificate", text: "The root cause was {value}."}
+    refs: [PRD-006, HR-007]
+  - id: INC-002
+    title: "Postmortem: Courier C1 Navigation Fault"
+    effective_date: "2024-04-11"
+    facts:
+      - {key: inc002_robots, value: "31 robots", text: "The navigation fault affected {value} in the Leeds depot."}
+      - {key: inc002_cause, value: "a map tile corruption", text: "The root cause was {value}."}
+    refs: [PRD-001]
+  - id: INC-003
+    title: "Postmortem: Dock Overheating"
+    effective_date: "2024-07-02"
+    facts:
+      - {key: inc003_docks, value: "12 docks", text: "Thermal shutdown hit {value} during the heatwave."}
+      - {key: inc003_fix, value: "a firmware fan curve update", text: "The fix was {value}."}
+    refs: [PRD-005]
+  - id: INC-004
+    title: "Postmortem: Courier C2 Battery Shortfall"
+    effective_date: "2025-05-15"
+    facts:
+      - {key: inc004_measured_hours, value: "12.3 hours", text: "Field tests measured an average Courier C2 runtime of {value}."}
+      - {key: inc004_customers, value: "9 customers", text: "The shortfall was reported by {value}."}
+    refs: [PRD-002, PRD-008]
+  - id: INC-005
+    title: "Postmortem: Billing Double Charge"
+    effective_date: "2024-09-03"
+    facts:
+      - {key: inc005_invoices, value: "214 invoices", text: "A retry bug double-charged {value}."}
+      - {key: inc005_refund_days, value: "3 days", text: "All affected customers were refunded within {value}."}
+    refs: [PRC-001]
+  - id: INC-006
+    title: "Postmortem: Sentinel False Alarms"
+    effective_date: "2024-11-19"
+    facts:
+      - {key: inc006_alarms, value: "1,340 alarms", text: "Sentinel S1 units raised {value} over one weekend."}
+      - {key: inc006_cause, value: "a motion model trained on summer footage", text: "The root cause was {value}."}
+    refs: [PRD-003]
+  - id: INC-007
+    title: "Postmortem: Harvest H1 Crop Damage"
+    effective_date: "2025-03-08"
+    facts:
+      - {key: inc007_loss, value: "18,000 USD", text: "Gripper misalignment caused crop losses of {value}."}
+      - {key: inc007_units, value: "7 units", text: "The fault was found in {value}."}
+    refs: [PRD-004]
+  - id: INC-008
+    title: "Postmortem: Console Data Export Delay"
+    effective_date: "2025-06-22"
+    facts:
+      - {key: inc008_delay, value: "6 hours", text: "Nightly data exports were delayed by {value}."}
+      - {key: inc008_cause, value: "a full disk on the export worker", text: "The root cause was {value}."}
+    refs: [PRD-006]
+  - id: INC-009
+    title: "Postmortem: Lift L1 Emergency Stop"
+    effective_date: "2025-08-30"
+    facts:
+      - {key: inc009_site, value: "the Rotterdam warehouse", text: "An emergency stop cascade halted operations at {value}."}
+      - {key: inc009_duration, value: "2 hours", text: "Operations were halted for {value}."}
+    refs: [PRD-009]
+  - id: INC-010
+    title: "Postmortem: Support Queue Backlog"
+    effective_date: "2026-01-12"
+    facts:
+      - {key: inc010_tickets, value: "860 tickets", text: "The support backlog peaked at {value}."}
+      - {key: inc010_breaches, value: "41 premium SLA breaches", text: "The backlog caused {value}."}
+    refs: [PRC-005, ORG-004]
+  # ---------------- Org chart (4) ----------------
+  - id: ORG-001
+    title: Executive Team
+    effective_date: "2024-01-01"
+    facts:
+      - {key: ceo, value: "Mara Lindqvist", text: "The chief executive officer is {value}."}
+      - {key: cto, value: "Dev Okafor", text: "The chief technology officer is {value}."}
+      - {key: headcount, value: "412 employees", text: "Halcyon Robotics has {value}."}
+    refs: [ORG-003]
+  - id: ORG-002
+    title: Customer Support Organization (2024)
+    effective_date: "2024-01-01"
+    facts:
+      - {key: head_of_support, value: "Priya Raman", text: "Customer Support is led by {value}."}
+      - {key: support_regions, value: "3 regions", text: "Support is staffed across {value}: EMEA, Americas and APAC."}
+    refs: [PRC-005]
+  - id: ORG-003
+    title: Engineering Organization
+    effective_date: "2024-06-01"
+    facts:
+      - {key: eng_teams, value: "14 teams", text: "Engineering is organized into {value}."}
+      - {key: eng_headcount, value: "168 engineers", text: "Engineering employs {value}."}
+    refs: [ORG-001, HR-007]
+  - id: ORG-004
+    title: Customer Support Organization (2026)
+    effective_date: "2026-02-01"
+    supersedes: ORG-002
+    facts:
+      - {key: head_of_support, value: "Tomasz Kowal", text: "Customer Support is led by {value}."}
+    refs: [PRC-005, INC-010]
