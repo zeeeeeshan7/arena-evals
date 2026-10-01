@@ -56,3 +56,14 @@ def test_judge_respects_cost_cap():
 def test_rubric_hash_covers_both_files():
     h = config.rubric_hash(RUBRIC_DIR)
     assert h == config.sha256_bytes((RUBRIC_DIR / "system.md").read_bytes(), (RUBRIC_DIR / "rubric.md").read_bytes())
+
+
+def test_self_preference_warning():
+    from arena_evals import bias
+
+    cfg = config.load()
+    assert bias.model_family("anthropic/claude-sonnet-4-5-20250929") == "claude"
+    cfg.models["agent"]["model"], cfg.models["judge"]["model"] = "anthropic/claude-a", "anthropic/claude-b"
+    assert bias.self_preference(cfg) is True
+    cfg.models["judge"]["model"] = "openai/gpt-5"
+    assert bias.self_preference(cfg) is False

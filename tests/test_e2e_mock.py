@@ -57,10 +57,10 @@ def dataset(tmp_path: Path) -> Path:
     return datasets.write_jsonl(tmp_path / "e2e.jsonl", TASKS)
 
 
-def run_variant(cfg, dataset, tmp_path, script, name):
+def run_variant(cfg, dataset, tmp_path, script, name, judge_model=M):
     log = run.generate("dev", "baseline", cfg.prompts_dir, dataset, cfg, model=scripted_agent(script),
                        log_dir=tmp_path / f"logs-{name}", epochs=2, cache=False)
-    return run.score(log, dataset, cfg, out_dir=tmp_path / name)
+    return run.score(log, dataset, cfg, judge_model=judge_model, out_dir=tmp_path / name, cache=False)
 
 
 def test_generate_and_score_write_results_and_manifest(cfg, dataset, tmp_path):
@@ -105,3 +105,44 @@ def test_e2e_known_verdicts(cfg, dataset, tmp_path):
     assert hall["success"] is False and hall["scores"]["citation_precision"] == 0.0
     assert gate_decision(paired_bootstrap(run.paired_deltas(base, bad)[1], seed=cfg.eval["seed"])) == "block"
     assert gate_decision(paired_bootstrap(run.paired_deltas(base, same)[1], seed=cfg.eval["seed"])) == "pass"
+
+
+# ---------------------------------------------------------------- M4: free-text tasks go through the judge
+FREE = [
+    TaskRecord(id="e2e-0101", input="What caused the Fleet Console outage?", reference="An expired TLS certificate",
+               gold_doc_ids=["INC-001"], type="lookup", answer_kind="free_text", tags=["lookup", "incident"],
+               split="dev"),
+    TaskRecord(id="e2e-0102", input="What caused the export delay?", reference="A full disk on the export worker",
+               gold_doc_ids=["INC-008"], type="lookup", answer_kind="free_text", tags=["lookup", "incident"],
+               split="dev"),
+    TaskRecord(id="e2e-0103", input="What caused the Leeds navigation fault?", reference="A map tile corruption",
+               gold_doc_ids=["INC-002"], type="lookup", answer_kind="free_text", tags=["lookup", "incident"],
+               split="dev"),
+]
+FREE_SCRIPT = {
+    FREE[0].input: ("INC-001", FINAL % ("An expired TLS certificate took the console down.", '["INC-001"]', "false")),
+    FREE[1].input: ("INC-008", FINAL % ("RETRY a full disk on the export worker", '["INC-008"]', "false")),
+    FREE[2].input: ("INC-002", FINAL % ("BROKEN corrupted map tiles", '["INC-002"]', "false")),
+}
+
+
+def scripted_judge():
+    """First reply for a RETRY answer is invalid (then valid on retry); BROKEN answers are always invalid."""
+    def reply(messages, tools, tool_choice, cfg):
+        text = "\n".join(m.text for m in messages)
+        if "BROKEN" in text or ("RETRY" in text and "failed validation" not in text):
+            return ModelOutput.from_content(M, "I think it is correct!")
+        return ModelOutput.from_content(M, '{"correct": true, "faithful": true, "reason": "matches INC doc"}')
+    return get_model(M, custom_outputs=reply, memoize=False)
+
+
+def test_judge_scores_free_text_with_retry_and_error(cfg, tmp_path):
+    ds = datasets.write_jsonl(tmp_path / "free.jsonl", FREE)
+    out = run_variant(cfg, ds, tmp_path, FREE_SCRIPT, "free", judge_model=scripted_judge())
+    by = {r["task_id"]: r for r in run.read_results(out.results_path) if r["repeat"] == 0}
+    assert by["e2e-0101"]["scores"]["judge"] == {"correct": True, "faithful": True, "reason": "matches INC doc"}
+    assert by["e2e-0101"]["success"] is True
+    assert by["e2e-0102"]["scores"]["judge"]["correct"] is True        # passed on the retry
+    assert by["e2e-0103"]["scores"]["judge_error"] is True               # failed twice
+    assert by["e2e-0103"]["success"] is None                             # missing, not FAIL (I2)
+    assert out.manifest["judge_error_count"] == 2                        # 1 task x 2 epochs
