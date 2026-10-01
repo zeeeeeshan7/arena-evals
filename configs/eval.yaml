@@ -8,7 +8,7 @@ limits:
   message_limit: 40
   token_limit: 80000
   time_limit: 300         # seconds per sample
-  max_tool_calls: 12
+  max_tool_calls: 20
 cost:
   max_usd_per_gate: 4.0   # sized to a ~$5 DeepSeek balance (spec I7); reset after the Task 17 measurement
   preflight_factor: 1.2

@@ -30,3 +30,4 @@ def test_regressed_prompt_drops_the_supersession_and_abstention_rules():
     for tool in ("search_docs", "get_doc", "calculate"):
         assert tool in text                                   # same tools: only the discipline is gone
     assert "always give" in text                              # the plausible "be more helpful" edit
+    assert "at most once" in text and "do not open" in text   # and the plausible "cut latency" edit
