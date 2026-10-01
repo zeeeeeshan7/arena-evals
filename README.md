@@ -100,17 +100,18 @@ The gate refuses to run unless `configs/judge.cert.json` is certified and matche
 
 ## Measured numbers
 
-Fill these in from Tasks 17, 23, 28 and 29 of the implementation plan; do not guess them.
+Measured on the committed demo-scale gate set (149 tasks, 3 repeats) with the DeepSeek models in `configs/models.yaml`: four real gate runs on pull requests #1 to #4, plus the repo's own simulator. Where a quantity was not measured, the row says so.
 
 | Quantity | Value | Source |
 |---|---|---|
-| Dev run (100 tasks x 3) cost / wall time | not measured yet | Task 17 |
-| Estimated gate cost / runtime | not measured yet | Task 17 |
-| Measured paired SD | not measured yet | Task 17 |
-| Simulated power at -8 pts with measured SD | not measured yet | Task 17 |
-| Judge kappa (95% CI), n labels | not measured yet | Task 23 |
-| A/A false-block rate | not measured yet | Task 28 |
-| Planted regression effect on the gate split | not measured yet | Task 29 |
+| Cost of one gate run (baseline + candidate, 2 x 149 x 3 agent runs, judge included) | $0.93 to $0.97 cold (PRs #2, #3, #4); $0.60 when the response cache was warm (PR #1). Cap: $4.00 | PR comments |
+| Wall time, push to verdict | 6 min warm (PR #1); 10 to 16 min cold (PRs #2 to #4; #3 and #4 ran at the same time) | Actions run times |
+| Paired SD of per-task differences | 0.28 for the planted regressions (PRs #1, #3); 0.08 to 0.09 for harmless wording changes (PRs #2, #4). The PRD assumed 0.45 | PR comments |
+| Minimum detectable effect (80% power) | 6.4 to 6.5 pts at SD 0.28; 1.8 to 2.0 pts at SD 0.08 to 0.09 | PR comments |
+| Simulated power with the measured SD (n=149, SD 0.28, 1,000 trials) | blocks 93.0% of true -8 pt drops, 86.2% at -7, 75.4% at -6, 59.3% at -5; 95% CI coverage 95.1% | `python -m arena_evals simulate --sd 0.28 --n 149` |
+| Judge agreement with labels | kappa 0.966 (95% CI 0.908 to 1.000), n=140 labels (6 owner, 94 Claude, 40 constructed); see "Judge certification" for the limits | `configs/judge.cert.json` |
+| Planted regression effect on the gate split | -14.8 pts (95% CI -19.5 to -10.5) in PR #1 and -13.2 pts (-17.9 to -8.9) in PR #3; both blocked. Two earlier versions of the planted prompt were weaker (about -7 pts on a 30-task slice, warn) and were strengthened | PR comments |
+| A/A false-block rate | **Not measured.** Simulated: 2.0% at SD 0.28 and 0.3% at SD 0.09 (n=149). In real runs the two harmless-change PRs (#2: -0.4 pts, #4: +0.9 pts) both passed, but two runs cannot establish a rate. The planned 20-run A/A test would cost about $19 at the cold-run price and was not run | simulator, PRs #2 and #4 |
 
 ## Fork PRs
 

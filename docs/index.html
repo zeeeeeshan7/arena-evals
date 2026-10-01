@@ -317,10 +317,10 @@ svg .p80label { fill: var(--pass); }
       <h2>What one gate run takes</h2>
     </div>
     <div class="stats">
-      <div class="stat"><b>$0.60</b><span>DeepSeek spend for the gate run on PR #1</span></div>
-      <div class="stat"><b>~6 min</b><span>wall time from push to verdict</span></div>
-      <div class="stat"><b>447</b><span>agent runs per side: 149 tasks × 3 repeats</span></div>
-      <div class="stat"><b>182</b><span>unit tests, run on every push</span></div>
+      <div class="stat"><b>$0.93 to $0.97</b><span>DeepSeek spend for one cold gate run (PRs #2 to #4). $0.60 when the cache was warm.</span></div>
+      <div class="stat"><b>6 to 16 min</b><span>wall time from push to verdict, depending on cache and load</span></div>
+      <div class="stat"><b>894</b><span>agent runs per gate: 149 tasks × 3 repeats × 2 sides</span></div>
+      <div class="stat"><b>184</b><span>unit tests, run on every push</span></div>
     </div>
   </section>
 
@@ -333,6 +333,7 @@ svg .p80label { fill: var(--pass); }
       <li>The gate set has 149 tasks, not the 300 in the original plan, to fit a small model budget. That is why only drops of roughly 6 points or more are reliably caught.</li>
       <li>The corpus has 40 synthetic documents and five conflicting pairs, so the conflicting-documents category tests about five distinct facts. Splits overlap in facts, not in wording; 26 gate questions were reworded after a near-duplicate check.</li>
       <li>Datasets were spot-checked on a 10% sample. Label-noise floor: dev 9.1% (95% interval 1.6 to 37.7), gate 0.0% (0 to 18.4).</li>
+      <li>The false-block rate was simulated (2.0% at the measured noise), not measured with an A/A test. The two harmless pull requests both passed, and two runs cannot establish a rate.</li>
       <li>The planted regression took three tries to become real. The first version changed nothing measurable, which is itself a reason to measure a gate against a known-bad change.</li>
     </ul>
   </section>
