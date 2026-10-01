@@ -52,7 +52,7 @@ def cfg(tmp_path):
 
 
 def test_certify_agreeing_judge_writes_valid_cert_then_goes_stale(cfg):
-    assert ci.certify(cfg, judge_model=_judge("agree")) == 0
+    assert ci.certify(cfg, perturber_model=_perturber(), judge_model=_judge("agree")) == 0
     cert = json.loads(ci.cert_path(cfg).read_text())
     assert cert["certified"] is True and cert["n_labels"] == 40
     assert cert["rubric_hash"] == config.rubric_hash(cfg.rubric_dir)
@@ -64,10 +64,34 @@ def test_certify_agreeing_judge_writes_valid_cert_then_goes_stale(cfg):
 
 
 def test_certify_rejects_disagreeing_judge(cfg):
-    assert ci.certify(cfg, judge_model=_judge("contrarian")) == 1
+    assert ci.certify(cfg, perturber_model=_perturber(), judge_model=_judge("contrarian")) == 1
     assert json.loads(ci.cert_path(cfg).read_text())["certified"] is False
     assert ci.cert_status(cfg) == (False, "judge failed certification")
 
 
 def test_cert_status_without_cert(cfg):
     assert ci.cert_status(cfg)[0] is False
+
+
+def _perturber():
+    """Compression stand-in: keeps the first sentence only (drops repeated facts, so most are discarded)."""
+    def reply(messages, tools, tool_choice, c):
+        ans = messages[-1].text.split("ANSWER:\n", 1)[1]
+        return ModelOutput.from_content(M, ans.split(".")[0] + ".")
+    return get_model(M, custom_outputs=reply, memoize=False)
+
+
+def test_certify_fails_a_length_biased_judge_on_the_verbosity_slope(cfg):
+    assert ci.certify(cfg, perturber_model=_perturber(), judge_model=_judge("length")) == 1
+    cert = json.loads(ci.cert_path(cfg).read_text())
+    assert cert["certified"] is False
+    assert cert["agreement"]["kappa"]["point"] == pytest.approx(1.0)       # agreement alone would have passed
+    assert cert["bias"]["verbosity_slope_pts"]["pass"] is False
+    assert cert["bias"]["verbosity_slope_pts"]["ci95"][1] > 2.0
+    assert set(cert["bias"]) == {"verbosity_slope_pts", "length_partial_corr", "self_preference_warning"}
+
+
+def test_certify_agreeing_judge_passes_bias_tests(cfg):
+    assert ci.certify(cfg, perturber_model=_perturber(), judge_model=_judge("agree")) == 0
+    bias_ = json.loads(ci.cert_path(cfg).read_text())["bias"]
+    assert bias_["verbosity_slope_pts"]["pass"] and bias_["length_partial_corr"]["pass"]
