@@ -94,3 +94,47 @@ def test_gate_is_not_applicable_when_no_gated_path_changed(repo):
     assert ci.gate(7, cfg, gh=gh) == 0
     assert gh.bodies == [] and gh.statuses[-1][1] == "success" and calls["cand"] == 0 and calls["base"] == 0
     assert "not applicable" in gh.statuses_desc[-1]
+
+
+def test_generate_baseline_finds_the_log_even_when_stdout_is_padded_console_noise(tmp_path, monkeypatch):
+    """On the runner the last stdout line was space-padded (Rich console), so Path(line) was relative and broke."""
+    from test_ci import _git_repo
+    root, sha = _git_repo(tmp_path)
+    cfg = config.load(root)
+    logs = tmp_path / "logs"
+    real_run = subprocess.run
+
+    def fake_run(cmd, *a, **k):
+        if "generate" not in cmd:
+            return real_run(cmd, *a, **k)
+        logs.mkdir(exist_ok=True)
+        (logs / "2026-10-01T16-15-47_arena-gate-baseline_x.eval").write_bytes(b"log")
+        noisy = "Log:\n" + " " * 60 + "/somewhere/else/entirely/log.eval\n" + " " * 70 + "\n"
+        return subprocess.CompletedProcess(cmd, 0, stdout=noisy, stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    got = ci.generate_baseline(sha, cfg, root / "datasets" / "gate.jsonl", logs, 1.0, cache=False)
+    assert got == logs / "2026-10-01T16-15-47_arena-gate-baseline_x.eval" and got.exists()
+
+
+def test_generate_baseline_errors_clearly_when_no_log_was_written(tmp_path, monkeypatch):
+    from test_ci import _git_repo
+    root, sha = _git_repo(tmp_path)
+    cfg = config.load(root)
+    real_run = subprocess.run
+    monkeypatch.setattr(subprocess, "run", lambda cmd, *a, **k: real_run(cmd, *a, **k) if "generate" not in cmd
+                        else subprocess.CompletedProcess(cmd, 0, stdout="", stderr=""))
+    with pytest.raises(RuntimeError, match="wrote no .eval log"):
+        ci.generate_baseline(sha, cfg, root / "datasets" / "gate.jsonl", tmp_path / "logs", 1.0, cache=False)
+
+
+def test_gate_reports_an_unexpected_exception_instead_of_dying_silently(repo, monkeypatch):
+    cfg, calls = repo
+
+    def boom(*a, **k):
+        raise ValueError("log could not be read")
+
+    monkeypatch.setattr(ci, "generate_baseline", boom)
+    gh = FakeGitHub()
+    assert ci.gate(7, cfg, gh=gh) == 2
+    assert "unexpected ValueError: log could not be read" in gh.bodies[-1] and gh.statuses[-1][1] == "failure"

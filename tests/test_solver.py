@@ -16,7 +16,7 @@ def test_parse_final():
 def test_prompts_share_output_contract_and_regressed_drops_cite_and_verify():
     for v in ("baseline", "concise", "verbose", "regressed"):
         assert load_prompt(v).rstrip().endswith('"abstain": false}')
-    assert "verify" in load_prompt("baseline").lower()
+    # The gated prompt (baseline) is judged by the eval gate, not by pinning its wording here.
     assert "verify" not in load_prompt("regressed").lower()
     assert "cite" not in open(agents.PROMPTS_DIR / "regressed.md", encoding="utf-8").read().lower()
 
@@ -34,7 +34,8 @@ def test_regressed_prompt_drops_the_supersession_and_abstention_rules():
 
 
 def test_careful_variants_stop_searching_and_abstain_when_searches_find_nothing():
-    """Unanswerable questions made the baseline search until it hit a limit and score as a failure."""
-    for v in ("baseline", "concise", "verbose"):
+    """Unanswerable questions made the baseline search until it hit a limit and score as a failure.
+    The gated prompt (baseline) is deliberately not pinned: the eval gate decides whether an edit to it is a regression."""
+    for v in ("concise", "verbose"):
         text = open(agents.PROMPTS_DIR / f"{v}.md", encoding="utf-8").read().lower()
         assert "stop searching" in text and "abstain" in text, v
