@@ -67,5 +67,12 @@ def rubric_hash(rubric_dir: Path) -> str:
     return sha256_files(rubric_dir / "system.md", rubric_dir / "rubric.md")
 
 
+# Every file that decides a sample's success when phase B re-scores a baseline: scorers, the sample-status rule
+# (run.py), the FINAL parser (agents.py) and the corpus that defines valid citation IDs.
+SCORING_FILES = ("arena_evals/scorers.py", "arena_evals/run.py", "arena_evals/agents.py", "arena_evals/corpus.py")
+
+
 def scorer_hash(root: Path = ROOT) -> str:
-    return sha256_files(root / "arena_evals" / "scorers.py")
+    root = Path(root)
+    corpus = sorted(p for p in (root / "corpus").rglob("*") if p.is_file()) if (root / "corpus").is_dir() else []
+    return sha256_files(*(root / f for f in SCORING_FILES), *corpus)

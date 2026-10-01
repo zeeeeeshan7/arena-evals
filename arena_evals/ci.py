@@ -16,7 +16,7 @@ from inspect_ai.model import GenerateConfig, get_model
 
 from arena_evals import agents, bias, calibration, corpus, datasets, report, run
 from arena_evals.agents import CostCapExceeded, CostMeter
-from arena_evals.config import Config, rubric_hash, scorer_hash, sha256_bytes, sha256_files
+from arena_evals.config import SCORING_FILES, Config, rubric_hash, scorer_hash, sha256_bytes, sha256_files
 from arena_evals.scorers import judge_answer
 from arena_evals.stats.bootstrap import bootstrap_ci, gate_decision, paired_bootstrap, per_tag
 
@@ -165,7 +165,7 @@ class GitHub:
             page += 1
 
     def upsert_comment(self, n: int, body: str) -> None:
-        mine = [c for c in self.comments(n) if report.MARKER_PREFIX in (c.get("body") or "")]
+        mine = own_gate_comments(self.comments(n))
         if mine:
             self._req("PATCH", f"/repos/{self.repo}/issues/comments/{mine[-1]['id']}", {"body": body})
         else:
@@ -178,9 +178,33 @@ class GitHub:
         self._req("POST", f"/repos/{self.repo}/statuses/{sha}", body)
 
 
+BOT_LOGIN = "github-actions[bot]"
+GATED_PREFIXES = ("prompts/", "agents/", "configs/", "datasets/")
+GATED_FILES = ("arena_evals/agents.py",)
+
+
+def own_gate_comments(comments: list[dict]) -> list[dict]:
+    """Gate comments written by the Actions bot. A marker typed by anyone else is untrusted input."""
+    return [c for c in comments if report.MARKER_PREFIX in (c.get("body") or "")
+            and (c.get("user") or {}).get("login") == BOT_LOGIN]
+
+
+def merge_base(root: Path, base_sha: str, head_sha: str) -> str:
+    """The fork point: the base tip may contain commits the PR never saw, which would read as a regression."""
+    try:
+        return subprocess.run(["git", "merge-base", base_sha, head_sha], cwd=root, check=True, capture_output=True,
+                              text=True).stdout.strip() or base_sha
+    except (subprocess.CalledProcessError, FileNotFoundError, NotADirectoryError):
+        return base_sha
+
+
+def is_gated(changed: list[str]) -> bool:
+    return any(f.startswith(GATED_PREFIXES) or f in GATED_FILES for f in changed)
+
+
 def cache_key(base_sha: str, cfg: Config, dataset_hash: str, rubric_hash_: str, scorer_hash_: str) -> str:
     a, j = cfg.models["agent"], cfg.models["judge"]
-    parts = [base_sha, a["model"], j["model"], a["temperature"], j["temperature"],
+    parts = [base_sha, a["model"], j["model"], a["temperature"], j["temperature"], cfg.eval["limits"],
              {"agent": a["seed"], "judge": j["seed"], "bootstrap": cfg.eval["seed"]}, dataset_hash, rubric_hash_,
              scorer_hash_]
     return sha256_bytes(json.dumps(parts, sort_keys=True).encode()).removeprefix("sha256:")[:32]
@@ -275,8 +299,18 @@ def gate(pr: int, cfg: Config, *, gh: GitHub | None = None, rerun_reason: str = 
         return finish("error", report.render(None, [], [], cert, {"spent": meter.spent, "cap": cap},
                                              meta | {"verdict": "error"}))
 
-    # 1. cert check (auto-recertify only when this PR touched the judge)
+    # 0. never run a fork's code with this repo's secrets, not even on a maintainer's workflow_dispatch
+    if info["head"]["repo"]["full_name"] != info["base"]["repo"]["full_name"]:
+        return fail("fork PR: the gate does not run untrusted code with secrets; push the branch to this repo")
     changed = gh.changed_files(pr)
+    if not rerun_reason.strip() and not is_gated(changed):
+        gh.set_status(head_sha, "success", "not applicable: no gated path changed", ctx)
+        print("gate verdict: not applicable")
+        return 0
+    base_sha = merge_base(cfg.root, base_sha, head_sha)
+    meta["merge_base"] = base_sha
+
+    # 1. cert check (auto-recertify only when this PR touched the judge)
     ok, why = cert_status(cfg)
     cert = json.loads(cert_path(cfg).read_text(encoding="utf-8")) if cert_path(cfg).exists() else {}
     if not ok:
@@ -289,7 +323,7 @@ def gate(pr: int, cfg: Config, *, gh: GitHub | None = None, rerun_reason: str = 
             return fail(f"judge uncertified ({why})")
 
     # 2. rerun policy
-    prior_body = next((c["body"] for c in reversed(gh.comments(pr)) if report.MARKER_PREFIX in (c.get("body") or "")), "")
+    prior_body = next((c["body"] for c in reversed(own_gate_comments(gh.comments(pr)))), "")
     if rerun_action(report.parse_marker(prior_body), head_sha, rerun_reason) == "replay":
         meta["headline"] = "prior block stands (re-run without a reason)"
         return finish("block", report.replay_note(prior_body))

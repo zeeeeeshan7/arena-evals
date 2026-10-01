@@ -52,23 +52,26 @@ def test_worst_lists_only_regressions_sorted():
 
 # ---------------------------------------------------------------- full gate() against a fake GitHub
 class FakeGitHub:
-    def __init__(self, head="h1", changed=()):
+    def __init__(self, head="h1", changed=("prompts/baseline.md",)):
         self.head, self.changed, self.bodies, self.statuses = head, list(changed), [], []
+        self.statuses_desc = []
 
     def pr(self, n):
-        return {"head": {"sha": self.head}, "base": {"sha": "b0"}}
+        return {"head": {"sha": self.head, "repo": {"full_name": "org/arena"}},
+                "base": {"sha": "b0", "repo": {"full_name": "org/arena"}}}
 
     def changed_files(self, n):
         return self.changed
 
     def comments(self, n):
-        return [{"id": 1, "body": self.bodies[-1]}] if self.bodies else []
+        return [{"id": 1, "body": self.bodies[-1], "user": {"login": "github-actions[bot]"}}] if self.bodies else []
 
     def upsert_comment(self, n, body):
         self.bodies.append(body)
 
     def set_status(self, sha, state, description, context, target_url=""):
         self.statuses.append((sha, state, context))
+        self.statuses_desc.append(description)
 
 
 @pytest.fixture
@@ -76,7 +79,8 @@ def repo(tmp_path, monkeypatch):
     for d in ("configs", "prompts", "corpus"):
         shutil.copytree(ROOT / d, tmp_path / d)
     (tmp_path / "arena_evals").mkdir()
-    shutil.copy(ROOT / "arena_evals" / "scorers.py", tmp_path / "arena_evals" / "scorers.py")
+    for f in ci.SCORING_FILES:
+        shutil.copy(ROOT / f, tmp_path / f)
     datasets.write_jsonl(tmp_path / "datasets" / "gate.jsonl", TASKS)
     datasets.write_jsonl(tmp_path / "calibration" / "labels.jsonl", [{"example_id": "x"}])
     cfg = config.load(tmp_path)

@@ -12,8 +12,7 @@ def load(name):
 def test_gate_triggers_on_prompt_agent_config_and_dataset_paths():
     wf = load("gate.yml")
     on = wf[True]  # PyYAML parses the bare key `on` as boolean True
-    assert on["pull_request"]["paths"] == ["prompts/**", "agents/**", "arena_evals/agents.py", "configs/**",
-                                           "datasets/**"]
+    assert "paths" not in (on["pull_request"] or {})   # a required status must report on every PR; ci.is_gated decides
     assert set(on["workflow_dispatch"]["inputs"]) == {"pr", "rerun_reason"}
 
 

@@ -1,13 +1,9 @@
 name: arena-eval-gate
 
 on:
+  # No `paths:` filter: a required status must be reported on every PR. ci.gate() posts "not applicable"
+  # (success, no comment, no model calls) when no gated path changed (ci.is_gated).
   pull_request:
-    paths:
-      - "prompts/**"
-      - "agents/**"
-      - "arena_evals/agents.py"
-      - "configs/**"
-      - "datasets/**"
   workflow_dispatch:
     inputs:
       pr:

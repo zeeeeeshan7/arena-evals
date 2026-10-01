@@ -53,7 +53,8 @@ def _tmp_root(tmp_path: Path) -> Path:
     for d in ("configs", "prompts", "corpus"):
         shutil.copytree(ROOT / d, tmp_path / d)
     (tmp_path / "arena_evals").mkdir()
-    shutil.copy(ROOT / "arena_evals" / "scorers.py", tmp_path / "arena_evals" / "scorers.py")
+    for f in config.SCORING_FILES:
+        shutil.copy(ROOT / f, tmp_path / f)
     return tmp_path
 
 
