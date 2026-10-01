@@ -43,3 +43,9 @@ def test_gate_job_points_the_anthropic_client_at_the_configured_endpoint():
     env = load("gate.yml")["jobs"]["gate"]["env"]
     assert env["ANTHROPIC_BASE_URL"] == "https://api.deepseek.com/anthropic"
     assert env["ANTHROPIC_API_KEY"] == "${{ secrets.ANTHROPIC_API_KEY }}"
+
+
+def test_tests_workflow_checks_datasets_at_the_committed_demo_scale():
+    """The committed gate split has 149 tasks; without the override `datasets check` expects 300."""
+    wf = load("tests.yml")
+    assert wf["jobs"]["tests"]["env"]["ARENA_SPLIT_SIZES"] == "gate=150"

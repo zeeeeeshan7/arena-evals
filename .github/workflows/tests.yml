@@ -8,6 +8,8 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    env:
+      ARENA_SPLIT_SIZES: gate=150   # the committed gate split is demo scale (149 tasks); see README
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
