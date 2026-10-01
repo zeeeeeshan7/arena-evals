@@ -349,3 +349,28 @@ def gate(pr: int, cfg: Config, *, gh: GitHub | None = None, rerun_reason: str = 
     body = report.render(paired, tags, worst(ids, d, base_rows, cand_rows), cert,
                          {"spent": meter.spent, "cap": cap}, meta)
     return finish(verdict, body)
+
+
+# ---------------------------------------------------------------- A/A flake test (M7)
+def aa(runs: int, cfg: Config, split: str = "gate") -> int:
+    """A/A flake test: head vs itself, response cache bypassed. Pass iff false-block rate <= 5%."""
+    ds = cfg.root / "datasets" / f"{split}.jsonl"
+    out = cfg.root / ".arena-out" / "aa"
+    agents.set_meter(CostMeter(cfg.eval["cost"]["max_usd_per_gate"] * runs, cfg.models["prices"]))
+    verdicts = []
+    for i in range(runs):
+        sides = []
+        for side in ("a", "b"):
+            log = run.generate(split, cfg.gate["variant"], cfg.prompts_dir, ds, cfg, cache=False,
+                               log_dir=out / f"logs-{i}-{side}")
+            sides.append(run.read_results(run.score(log, ds, cfg, out_dir=out / f"{i}-{side}", cache=False).results_path))
+        _, d, _ = run.paired_deltas(*sides)
+        r = paired_bootstrap(d, cfg.eval["n_resamples"], cfg.eval["seed"] + i)
+        verdicts.append(gate_decision(r, cfg.gate["eps_pts"], cfg.gate["upper_q"]))
+        print(f"A/A run {i + 1}/{runs}: {verdicts[-1]} delta {r.delta * 100:+.2f} pts "
+              f"(95% CI {r.ci95[0] * 100:+.2f} to {r.ci95[1] * 100:+.2f})")
+    rate = verdicts.count("block") / runs
+    (out / "aa.json").write_text(json.dumps({"runs": runs, "verdicts": verdicts, "false_block_rate": rate}, indent=2),
+                                 encoding="utf-8")
+    print(f"A/A false-block rate: {rate:.1%} ({verdicts.count('block')}/{runs}); pass iff <= 5%")
+    return 0 if rate <= 0.05 else 1

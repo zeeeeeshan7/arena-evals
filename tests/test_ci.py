@@ -178,3 +178,12 @@ def test_generate_baseline_errors_when_base_lacks_harness(tmp_path):
     cfg = config.load(root)
     with pytest.raises(RuntimeError, match="does not contain the eval harness"):
         ci.generate_baseline(sha, cfg, root / "datasets" / "gate.jsonl", tmp_path / "logs", 1.0, cache=False)
+
+
+def test_aa_counts_false_blocks(repo):
+    cfg, calls = repo
+    calls["cand_script"] = GOOD
+    assert ci.aa(2, cfg, split="gate") == 0                  # identical scripted agent: never blocks
+    out = json.loads((cfg.root / ".arena-out" / "aa" / "aa.json").read_text())
+    assert out == {"runs": 2, "verdicts": ["pass", "pass"], "false_block_rate": 0.0}
+    assert calls["cand"] == 4                                # 2 runs x 2 sides, cache bypassed
