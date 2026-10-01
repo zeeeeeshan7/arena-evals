@@ -269,7 +269,12 @@ def generate_baseline(base_sha: str, cfg: Config, dataset: Path, log_dir: Path, 
         raise CostCapExceeded(p.stderr.strip().splitlines()[-1] if p.stderr.strip() else "cost cap hit in baseline")
     if p.returncode != 0:
         raise RuntimeError(f"baseline generate failed (exit {p.returncode}): {p.stderr[-2000:]}")
-    return Path(p.stdout.strip().splitlines()[-1])
+    # Do not parse stdout: on a CI runner the console output is padded and wrapped. The log is in the directory
+    # we told `generate` to write to.
+    logs = sorted(Path(log_dir).glob("*.eval"), key=lambda f: f.stat().st_mtime)
+    if not logs:
+        raise RuntimeError(f"baseline generate wrote no .eval log in {log_dir}")
+    return logs[-1]
 
 
 def gate(pr: int, cfg: Config, *, gh: GitHub | None = None, rerun_reason: str = "") -> int:
@@ -364,6 +369,8 @@ def gate(pr: int, cfg: Config, *, gh: GitHub | None = None, rerun_reason: str = 
         return fail(str(e))
     except subprocess.CalledProcessError as e:
         return fail(f"git failed: {' '.join(map(str, e.cmd))}: {(e.stderr or b'')[-500:]!r}")
+    except Exception as e:  # noqa: BLE001  never leave the PR silent: report it as an error and set the status
+        return fail(f"unexpected {type(e).__name__}: {e}")
 
     # 5. compare
     meta["judge_errors"] = {"baseline": sum(r["scores"]["judge_error"] for r in base_rows),
